@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+# iterates through all templates mi_home/repos/ and executes
+# smartos_build to generate an updated image
+#
+# Copyright (c) 2013 Joyent Inc., All rights reserved.
+# Copyright (c) 2014 Daniel Malon
+
+set -o errexit
+set -o pipefail
+set -o nounset
+#set -o xtrace
+
+# Set mi_home and source mi_home/lib/mibe.inc and mi_home/etc/build.conf if exists
+mi_home=$(dirname $(cd ${0%/*} && pwd -P));
+[[ -s "${mi_home}/lib/mibe.inc" ]] && source ${mi_home}/lib/mibe.inc || { echo "* ERROR - ${mi_home}/lib/mibe.inc not found, can't continue."; exit 1; }
+[[ -s "${mi_home}/etc/build.conf" ]] && source ${mi_home}/etc/build.conf || { echo "* ERROR - ${mi_home}/etc/build.conf not found, can't continue."; exit 1; }
+
+# Get repos dir
+get_reposdir;
+
+# Find all template folders
+mi_reposlist=$(find ${mi_reposdir}/* -type d -maxdepth 0)
+
+# Iterate through all the templates in mi_reposdir
+for i in ${mi_reposlist[@]}; do
+  # Skip stuff that doesn't look like a mibe template
+  [[ ! -f "${i}/manifest" ]] && continue;
+  [[ ! -f "${i}/customize" ]] && continue;
+	[[ ! -f "${i}/packages" ]] && continue;
+
+	echo "* Building ${i}..";
+
+  exec ${mi_home}/bin/build_smartos $BUILD_BASE $BUILD_ZONE ${i}
+done
