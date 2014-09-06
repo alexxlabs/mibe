@@ -152,7 +152,7 @@ get_vars() {
 	mi_bfinal_snap="zones/${name}-${version}@final";
 	mi_bimage_snap="zones/${mi_bimage}@${name}-${version}";
 	mi_bzone_tplate="zones/${name}-${version}";
-	mi_brepo_path="${mi_reposdir}/${mi_brepo}";
+	mi_brepo_path="${mi_brepo}";
 	mi_bzone_logall="${mi_home}/logs/${name}-${version}-${mi_time}-all.log";
 	mi_bzone_logerr="${mi_home}/logs/${name}-${version}-${mi_time}-error.log";
 }
@@ -175,14 +175,17 @@ build_sanitycheck() {
 	# Check if build zone mi_bzone is configured and running
 	[[ $(zoneadm -z ${mi_bzone} list -p 2> /dev/null | awk -F: '{ print $3 }') != "running" ]] && failtest "Build zone ${mi_bzone} must be configured and\n  running.";
 
+	# Make mi_brepo absolute
+	mi_brepo=$(readlink -f ${mi_brepo})
+
 	# Check that build repository mi_brepo directory exists
-	[[ -d "${mi_brepo}" ]] || [[ -d "${mi_reposdir}/${mi_brepo}" ]] || failtest "Build repository ${mi_brepo} doesn\'t exist.";
+	[[ -d "${mi_brepo}" ]] || failtest "Build repository ${mi_brepo} doesn\'t exist.";
 
 	# Check that build repository manifest mi_brepo/manifest exists
-	[[ -f "${mi_brepo}/manifest" ]] && source ${mi_brepo}/manifest || [[ -f "${mi_reposdir}/${mi_brepo}/manifest" ]] && source ${mi_reposdir}/${mi_brepo}/manifest || failtest "A build repository manifest ${mi_brepo}/manifest doesn't exist.\n! A build repository with proper build files must exist for an\n! image to be built.  See https://github.com:joyent/mi-example\n";	
+	[[ -f "${mi_brepo}/manifest" ]] && source ${mi_brepo}/manifest || failtest "A build repository manifest ${mi_brepo}/manifest doesn't exist.\n! A build repository with proper build files must exist for an\n! image to be built.  See https://github.com:joyent/mi-example\n";	
 
 	# Check that build repository customize mi_brepo/customize exists
-	[[ -f "${mi_brepo}/customize" ]] || [[ -f "${mi_reposdir}/${mi_brepo}/customize" ]] || failtest "A build repository customize ${mi_brepo}/customize doesn\'t exist.\n! A build repository with proper build files must exist for an\n! image to be built.  See https://github.com:joyent/mi-example\n";
+	[[ -f "${mi_brepo}/customize" ]] || failtest "A build repository customize ${mi_brepo}/customize doesn\'t exist.\n! A build repository with proper build files must exist for an\n! image to be built.  See https://github.com:joyent/mi-example\n";
 
 	# Get build variables after sourcing manifest
 	get_vars;
