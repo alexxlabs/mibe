@@ -27,9 +27,9 @@ for i in ${mi_reposlist[@]}; do
   # Skip stuff that doesn't look like a mibe template
   [[ ! -f "${i}/manifest" ]] && continue;
   [[ ! -f "${i}/customize" ]] && continue;
-	[[ ! -f "${i}/packages" ]] && continue;
+  [[ ! -f "${i}/packages" ]] && continue;
 
-	echo "* Building ${i}..";
+  echo "* Building ${i}..";
 
   exec ${mi_home}/bin/build_smartos $BUILD_BASE $BUILD_ZONE ${i}
 done
