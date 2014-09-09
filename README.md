@@ -42,6 +42,20 @@ SmartOS users should use the following process: [Creating a Custom Zone Image]  
 * mi_home/logs - Logging directory for image builds.
 * mi_home/repos - Build repositories.
 
+## Defaults configuration
+
+Additional defaults will be loaded from mi_home/.mibecfg and $HOME/.mibecfg.
+This configuration needs to be bash sourceable.
+
+Possible configuration options with their current default values:
+```
+owneruuid="9dce1460-0c4c-4417-ab8b-25ca478c5a78"
+ownername="sdc"
+urn_cloud_name="sdc"
+urn_creator_name="sdc"
+compression="gzip"
+```
+
 ## Usage
 
 Clone the mibe repository in /opt (or wherever has space to store image files):
