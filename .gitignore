@@ -8,3 +8,6 @@ bin/joyent-imgadm
 bin/build_stingray
 etc/repos_local.conf
 etc/repos_local.list
+images/
+logs/
+repos/

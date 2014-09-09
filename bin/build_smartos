@@ -97,7 +97,8 @@ zone_create_dumpmanifest;
 # Clean up
 zone_cleanup;
 
-printf "Image:    ${mi_bfinal_dump}\n";
-printf "Manifest: ${mi_bfinal_manifest}\n\n";
+printf "Image:             ${mi_bfinal_dump}\n";
+printf "Manifest (IMGAPI): ${mi_bfinal_manifest_imgapi}\n";
+printf "Manifest (DSAPI):  ${mi_bfinal_manifest_dsapi}\n\n";
 
 exit 0;

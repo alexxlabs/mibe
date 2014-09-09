@@ -144,11 +144,25 @@ init_repo() {
 
 	echo "* Done.";
 }
+get_defaults() {
+	[[ -f "${mi_home}/.mibecfg" ]] && source ${mi_home}/.mibecfg;
+	[[ -f "$HOME/.mibecfg" ]] && source ${HOME}/.mibecfg;
+
+	[[ -z "${owneruuid}" ]] && owneruuid="9dce1460-0c4c-4417-ab8b-25ca478c5a78";
+	[[ -z "${ownername}" ]] && ownername="sdc";
+	[[ -z "${compression}" ]] && compression="gzip";
+	[[ -z "${urn_cloud_name}" ]] && urn_cloud_name="sdc";
+	[[ -z "${urn_creator_name}" ]] && urn_creator_name="sdc";
+
+	true
+}
 get_vars() {
 	mi_time=$(date +%Y-%m-%d_%H-%M-%S);
 	mi_bzonet=$(echo ${mi_bzone:0:18});
-	mi_bfinal_dump="${mi_home}/images/${name}-${version}.zfs.gz";
-	mi_bfinal_manifest="${mi_home}/images/${name}-${version}.dsmanifest";
+	[[ ${compression} == "bzip2" ]] && mi_bfinal_dump_ext="bz2" || mi_bfinal_dump_ext="gz"
+	mi_bfinal_dump="${mi_home}/images/${name}-${version}.zfs.${mi_bfinal_dump_ext}";
+	mi_bfinal_manifest_imgapi="${mi_home}/images/${name}-${version}-imgapi.dsmanifest";
+	mi_bfinal_manifest_dsapi="${mi_home}/images/${name}-${version}-dsapi.dsmanifest";
 	mi_bfinal_snap="zones/${name}-${version}@final";
 	mi_bimage_snap="zones/${mi_bimage}@${name}-${version}";
 	mi_bzone_tplate="zones/${name}-${version}";
@@ -180,6 +194,9 @@ build_sanitycheck() {
 
 	# Check that build repository mi_brepo directory exists
 	[[ -d "${mi_brepo}" ]] || failtest "Build repository ${mi_brepo} doesn\'t exist.";
+
+	# load .mibecfg defaults if available
+	get_defaults;
 
 	# Check that build repository manifest mi_brepo/manifest exists
 	[[ -f "${mi_brepo}/manifest" ]] && source ${mi_brepo}/manifest || failtest "A build repository manifest ${mi_brepo}/manifest doesn't exist.\n! A build repository with proper build files must exist for an\n! image to be built.  See https://github.com:joyent/mi-example\n";	
@@ -421,7 +438,13 @@ zone_cleanup_sighandler() {
 zone_create_dumpmanifest() {
 	printf "%-70s" "* Creating image file and manifest..";
 
-	zfs send ${mi_bzone_tplate}@final 2> /dev/null | gzip -9 > ${mi_bfinal_dump} || failtest "Unable to zfs dump ${mi_bfinal_dump}.";
+	if [[ ${compression} == "gzip" ]]; then
+		zfs send ${mi_bzone_tplate}@final 2> /dev/null | gzip -9 > ${mi_bfinal_dump} || failtest "Unable to zfs dump ${mi_bfinal_dump}.";
+	elif [[ ${compression} == "bzip2" ]]; then
+		zfs send ${mi_bzone_tplate}@final 2> /dev/null | bzip2 -9 > ${mi_bfinal_dump} || failtest "Unable to zfs dump ${mi_bfinal_dump}.";
+	else
+		failtest "Unknown compression type \"${compression}\"."
+	fi
 
   # Create users block for manifest
   for user in ${users}; do
@@ -468,8 +491,8 @@ zone_create_dumpmanifest() {
     mi_manifest_networks_block='"networks": [ {"name": "net0", "description": "public"} ]';
   fi
 
-  # Set manifest owner_uuid to 9dce1460-0c4c-4417-ab8b-25ca478c5a78 if not set in manifest
-  [[ -z ${owneruuid} ]] && mi_manifest_owneruuid="9dce1460-0c4c-4417-ab8b-25ca478c5a78"; 
+  mi_manifest_owneruuid="${owneruuid}";
+  mi_manifest_ownername="${ownername}";
 
   # Get file details
   mi_file_time=$(ls -l --time-style '+%Y-%m-%dT%H:%M:%SZ' ${mi_bfinal_dump} | awk '{ print $6 }');
@@ -477,7 +500,7 @@ zone_create_dumpmanifest() {
   mi_file_size=$(ls -l ${mi_bfinal_dump} | awk '{ print $5 }');
   mi_manifest_uuid=$(uuid);
 
-sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest}
+sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest_imgapi}
 {
   "v": "2",
   "uuid": "${mi_manifest_uuid}",
@@ -494,7 +517,7 @@ sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest}
     { 
       "sha1": "${mi_file_hash}",
       "size": ${mi_file_size},
-      "compression": "gzip"
+      "compression": "${compression}"
     }
   ],
   "description": "${description}",
@@ -506,9 +529,41 @@ sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest}
   ${mi_manifest_users_block}
   ${mi_manifest_role_block}
   ${mi_manifest_billingtags_block}
- "urn": "sdc:sdc:${name}:${version}"
+  "urn": "${urn_cloud_name}:${urn_creator_name}:${name}:${version}"
 }
 EOF
+
+sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest_dsapi}
+{
+  "uuid": "${mi_manifest_uuid}",
+  "name": "${name}",
+  "version": "${version}",
+  "description": "${description}",
+  "os": "smartos",
+  "type": "zone-dataset",
+  "vendor_uuid": "${mi_manifest_owneruuid}",
+  "creator_uuid": "${mi_manifest_owneruuid}",
+  "creator_name": "${mi_manifest_ownername}",
+  "published_at": "${mi_file_time}",
+  "files": [
+    { 
+      "path": "${name}-${version}.zfs.${mi_bfinal_dump_ext}",
+      "sha1": "${mi_file_hash}",
+      "size": ${mi_file_size}
+    }
+  ],
+  ${mi_manifest_homepage_block}
+  "requirements": {
+    ${mi_manifest_minram_block}
+    ${mi_manifest_networks_block}
+  },
+  ${mi_manifest_users_block}
+  ${mi_manifest_role_block}
+  ${mi_manifest_billingtags_block}
+  "urn": "${urn_cloud_name}:${urn_creator_name}:${name}:${version}"
+}
+EOF
+
 	printf "OK.\n\n";
 }
 zone_unconfigure_buildzone() {
