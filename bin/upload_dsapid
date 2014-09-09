@@ -1,0 +1,75 @@
+#!/bin/bash
+#
+# will upload a single given image to the configured dsapid instance
+# if no repository is given it will iterate through all and upload
+# only those which are not already available on the server
+#
+# Copyright (c) 2014 Daniel Malon
+
+set -o pipefail
+set -o nounset
+#set -o xtrace
+
+# Set mi_home and source mi_home/lib/mibe.inc and mi_home/etc/upload.conf if exists
+mi_home=$(dirname $(cd ${0%/*} && pwd -P));
+[[ -s "${mi_home}/lib/mibe.inc" ]] && source ${mi_home}/lib/mibe.inc || { echo "* ERROR - ${mi_home}/lib/mibe.inc not found, can't continue."; exit 1; }
+[[ -s "${mi_home}/etc/upload.conf" ]] && source ${mi_home}/etc/upload.conf || { echo "* ERROR - ${mi_home}/etc/upload.conf not found, can't continue."; exit 1; }
+
+# Get repos dir
+get_reposdir;
+
+shift $(($OPTIND - 1))
+if [[ $# -gt 0 ]]; then
+  mi_reposlist=("$@")
+else
+  # Find all template folders
+  mi_reposlist=$(find ${mi_reposdir}/* -type d -maxdepth 0)
+fi
+
+# Iterate through all the templates in mi_reposdir
+for mi_brepo in ${mi_reposlist[@]}; do
+  # Make mi_brepo absolute
+  mi_brepo=$(readlink -f ${mi_brepo})
+  mi_brepo_name=$(basename ${mi_brepo})
+
+  # Skip stuff that doesn't look like a mibe template
+  [[ ! -f "${mi_brepo}/manifest" ]] && continue;
+  [[ ! -f "${mi_brepo}/customize" ]] && continue;
+  [[ ! -f "${mi_brepo}/packages" ]] && continue;
+
+  # unused here but to make other parties happy
+  mi_bimage="unused"
+  mi_bzone="unused"
+
+  # load .mibecfg defaults if available
+  get_defaults;
+
+  # Load manifest
+  source ${mi_brepo}/manifest
+
+  # Get build variables after sourcing manifest
+  get_vars;
+
+  # Check that final build image file doesn't already exist
+  if [[ -f "${mi_bfinal_dump}" ]] && [[ -f "${mi_bfinal_manifest_dsapi}" ]]; then
+    image_uuid=$(json -f ${mi_bfinal_manifest_dsapi} uuid)
+
+    # Test if image already is uploaded
+    curl -s -k --head "${DSAPID_URI}/datasets/${image_uuid}" | head -n 1 | grep "HTTP/1\.[01] 2.." > /dev/null
+
+    # upload only if not exists already
+    if [[ $? -ne 0 ]]; then
+      printf "Uploading ${mi_brepo_name}..."
+
+      curl -s -k -u ${DSAPID_AUTH_TOKEN}: "${DSAPID_URI}/api/upload" -F manifest=@${mi_bfinal_manifest_dsapi} -F file=@${mi_bfinal_dump} > /dev/null
+
+      if [[ $? -eq 0 ]]; then
+        printf "OK.\n"
+      else
+        printf "ERROR.\n"
+      fi
+    else
+      printf "Skipping ${mi_brepo_name}.\n"
+    fi
+  fi
+done
