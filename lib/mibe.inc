@@ -359,6 +359,27 @@ zone_create_motdproduct() {
 
 	printf "OK.\n";
 }
+zone_delete_packages() {
+	if [[ -f "${mi_brepo_path}/delete_packages" ]]; then
+    IFS=$'\n\r';
+		mi_bzone_packagesr=($(cat ${mi_brepo_path}/delete_packages));
+		unset IFS;
+		mi_bzone_packages=(${mi_bzone_packagesr[@]/\#*/});
+
+		if [[ ! -z "${mi_bzone_packages}" ]]; then
+			printf "%-70s" "* Delete packages list..";
+
+			echo "pkgdelete -v ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
+
+			mi_bzone_result=$(zlogin ${mi_bzone} \
+			  PATH=/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin \
+			  pkg_delete -v ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
+			  | tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
+
+			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error deleting the packages list.\n! See ${mi_bzone_logerr}.";
+		fi
+	fi
+}
 zone_install_packages() {
 	# First run pkgin update
 	mi_bzone_result=$(zlogin ${mi_bzone} 'PATH=/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin \

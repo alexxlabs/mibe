@@ -82,6 +82,7 @@ zone_copyin_files;
 
 # Create motd, product, and install packages in the build zone
 zone_create_motdproduct;
+zone_delete_packages;
 zone_install_packages;
 
 # Execute the customize script in the build zone
