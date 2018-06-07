@@ -11,3 +11,4 @@ etc/repos_local.list
 images/
 logs/
 repos/
+.DS_Store
