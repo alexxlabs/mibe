@@ -639,3 +639,292 @@ zone_unconfigure_buildzone() {
 
 	printf "OK.\n";
 }
+
+###############################
+# lx-brand additions
+zone_lx_boot() {
+	printf "%-70s" "* Booting build zone (${mi_bzonet})..";
+
+	zoneadm -z ${mi_bzone} boot &> /dev/null || failtest "Unable to boot ${mi_bzone}.";
+
+	zone_timeout="30";
+	while true; do
+		mi_bzone_state=$(zlogin ${mi_bzone} '[[ `/sbin/runlevel | cut -d " " -f 2` == 5 ]] && echo "Ready"');
+		[[ "${mi_bzone_state}" == "Ready" ]] && break;
+		sleep 1;
+
+		zone_timeout=$((zone_timeout - 1));
+		[[ ${zone_timeout} -le 0 ]] && failtest "Unable to boot zone ${mi_bzone}."; 
+	done
+
+	printf "OK.\n";
+}
+zone_configure_lx_buildzone() {
+	printf "%-70s" "* Configuring lx-build zone (${mi_bzonet}) to be imaged..";
+
+	# Unmount cores filesystem zones/cores/mi_bzone from build zone mi_bzone
+	zfs unmount zones/cores/${mi_bzone} || failtest "Unable to unmount zones/cores/${mi_bzone}.";
+
+	# Detach existing dataset from build zone mi_bzone
+	zoneadm -z ${mi_bzone} detach 2> /dev/null || failtest "Unable to detach dataset from ${mi_bzone}.";
+
+	# Snapshot the build (base) image mi_bimage as zones/mi_bimage@name-version
+	zfs snapshot ${mi_bimage_snap} &> /dev/null || failtest "Unable to snapshot ${mi_bimage_snap}.";
+
+	# Clone the snapshot above mi_bimage_snap into build image template mi_bzone_tplate (zones/name-version)
+	zfs clone ${mi_bimage_snap} ${mi_bzone_tplate} &> /dev/null || failtest "Unable to clone ${mi_bimage_snap} to ${mi_bzone_tplate}.";
+
+	# Re-configure build zone mi_bzone with build image template mi_bzone_tplate
+	zonecfg -z ${mi_bzone} -f - &> /dev/null <<-EOF
+	set zonepath=/${mi_bzone_tplate}
+	EOF
+
+	# Attach build zone mi_bzone to mi_bzone_tplate (zones/name-version)
+	zoneadm -z ${mi_bzone} attach -F &> /dev/null || failtest "Unable to attach build zone ${mi_bzone} to ${mi_bzone_tplate}.";
+
+	# Configure networking for build zone mi_bzone
+	mi_bzone_vnics=($(zonecfg -z ${mi_bzone} info net 2>/dev/null | \
+	  awk '{if($1~/physical/) print $2}'));
+
+	mi_bzone_oldpath=$(eval echo $(zonecfg -z ${mi_bzone} \
+	  info attr name=mi-zpath 2>/dev/null | \
+	  awk -F: '{if ($1~/value/) print $2}'));
+
+	mv /${mi_bzone_tplate}/root/etc/resolv.conf{,.orig} 2> /dev/null || true;
+	cp -p ${mi_bzone_oldpath}/root/etc/resolv.conf \
+	  /${mi_bzone_tplate}/root/etc/resolv.conf 2> /dev/null || true;
+
+	printf "OK.\n";
+}
+zone_delete_lx_packages() {
+	if [[ -f "${mi_brepo_path}/delete_packages" ]]; then
+    IFS=$'\n\r';
+		mi_bzone_packagesr=($(cat ${mi_brepo_path}/delete_packages));
+		unset IFS;
+		mi_bzone_packages=(${mi_bzone_packagesr[@]/\#*/});
+
+		if [[ ! -z "${mi_bzone_packages}" ]]; then
+			printf "%-70s" "* Delete packages list..";
+
+			echo "apt-get -y purge -v ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
+
+			mi_bzone_result=$(zlogin ${mi_bzone} \
+			  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+			  apt-get -qq purge ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
+			  | tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
+
+			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error deleting the packages list.\n! See ${mi_bzone_logerr}.";
+		fi
+	fi
+}
+zone_install_lx_packages() {
+	# First run pkgin update
+	mi_bzone_result=$(zlogin ${mi_bzone} 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+             apt-get update -qq 2>&1' >> ${mi_bzone_logall} \
+            | tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?);
+
+	[[ ! ${mi_bzone_result} ]] || failtest "Unable to update apt list.";
+
+	if [[ -f "${mi_brepo_path}/packages" ]]; then
+    		IFS=$'\n\r';
+		mi_bzone_packagesr=($(cat ${mi_brepo_path}/packages));
+		unset IFS;
+		mi_bzone_packages=(${mi_bzone_packagesr[@]/\#*/});
+
+		if [[ ! -z "${mi_bzone_packages}" ]]; then
+			printf "%-70s" "* Installing packages list..";
+
+			echo "apt-get -y install ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
+
+			mi_bzone_result=$(zlogin ${mi_bzone} \
+			  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+			  apt-get -qq install ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
+			  | tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
+
+			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}.";
+		fi
+	fi
+}
+zone_unconfigure_lx_buildzone() {
+	printf "%-70s" "* Un-configuring build zone (${mi_bzonet})..";
+	
+	# Detach existing dataset from build zone mi_bzone
+	zoneadm -z ${mi_bzone} detach &> /dev/null || failtest "Unable to detach dataset from ${mi_bzone}.";
+
+	# Restore original network configuration to build zone mi_bzone
+	mi_bzone_vnics=($(zonecfg -z ${mi_bzone} info net 2>/dev/null | \
+	  awk '{if($1~/physical/) print $2}'));
+
+	mv /${mi_bzone_tplate}/root/etc/resolv.conf{.orig,} 2>/dev/null || \
+	rm /${mi_bzone_tplate}/root/etc/resolv.conf 2>/dev/null || true;
+
+	mv /${mi_bzone_tplate}/root/etc/defaultrouter{.orig,} 2>/dev/null || \
+	rm /${mi_bzone_tplate}/root/etc/defaultrouter 2>/dev/null || true;
+
+	for mi_bzone_vnic in ${mi_bzone_vnics[@]}; do
+		mv /${mi_bzone_tplate}/root/etc/hostname.${mi_bzone_vnic}{.orig,} 2>/dev/null || \
+		rm /${mi_bzone_tplate}/root/etc/hostname.${mi_bzone_vnic} 2>/dev/null || true;
+	done
+
+	# Snapshot the final image mi_bzone_tplate@final
+	# Make sure the final snapshot doesn't contain any SUNattached.xml/SUNWdetached.xml files
+	rm -f /${mi_bzone_tplate}/SUNW{at,de}tached.xml
+	zfs snapshot ${mi_bzone_tplate}@final &> /dev/null || failtest "Unable to create snapshot ${mi_bzone_tplate}@final.";
+
+	# Re-configure build zone mi_bzone with original dataset
+	mi_bzone_oldpath=$(eval echo $(zonecfg -z ${mi_bzone} \
+	info attr name=mi-zpath 2>/dev/null | awk -F: '{if ($1~/value/) print $2}'));
+
+	zonecfg -z ${mi_bzone} "set zonepath=${mi_bzone_oldpath}" &> /dev/null
+
+	# Re-attach the original dataset to the build zone mi_bzone
+	zoneadm -z ${mi_bzone} attach -F &> /dev/null || failtest "Unable to attach original dataset to ${mi_bzone}.";
+
+	# Mount the cores filesystem back to the build zone mi_bzone
+	mi_bzone_path=$(eval echo $(zonecfg -z ${mi_bzone} info zonepath 2>/dev/null | awk -F: '{print $2}')); 
+
+	zfs mount zones/cores/${mi_bzone} &> /dev/null || true;
+
+	# Clear the mi-zpath setting from build zone mi_bzone
+	zonecfg -z ${mi_bzone} 'remove attr name=mi-zpath' 2>/dev/null || true;
+
+	# Boot mi_bzone
+	zoneadm -z ${mi_bzone} boot &> /dev/null || failtest "Unable to boot ${mi_bzone}.";
+
+	printf "OK.\n";
+}
+zone_create_lx_dumpmanifest() {
+	printf "%-70s" "* Creating image file and manifest..";
+
+	if [[ ${compression} == "gzip" ]]; then
+		zfs send ${mi_bzone_tplate}@final 2> /dev/null | gzip -9 > ${mi_bfinal_dump} || failtest "Unable to zfs dump ${mi_bfinal_dump}.";
+	elif [[ ${compression} == "bzip2" ]]; then
+		zfs send ${mi_bzone_tplate}@final 2> /dev/null | bzip2 -9 > ${mi_bfinal_dump} || failtest "Unable to zfs dump ${mi_bfinal_dump}.";
+	else
+		failtest "Unknown compression type \"${compression}\"."
+	fi
+
+  # Create users block for manifest
+  for user in ${users}; do
+    mi_manifest_users_snippet="${mi_manifest_users_snippet+${mi_manifest_users_snippet}, }{\"name\": \"${user}\"}";
+  done
+
+  if [ -n "${mi_manifest_users_snippet}" ]; then
+    mi_manifest_users_block="\"users\": [ ${mi_manifest_users_snippet} ], \"generate_passwords\": true,";
+  else
+    mi_manifest_users_block='"users": [ {"name": "root"}, {"name": "admin"} ], "generate_passwords": true,';
+  fi
+
+  # Create minram block for manifest if exists
+  if [ -n "${minram}" ]; then
+    mi_manifest_minram_block="\"min_ram\": ${minram},"
+  fi
+
+  # Create role block for manifest
+  if [ -n "${role}" ] && [ -n "${kernel_version}" ]; then
+    mi_manifest_role_block="\"tags\": { \"role\": \"${role}\", \"kernel_version\": ${kernel_version} },";
+  else
+    mi_manifest_role_block="\"tags\": { \"role\": \"os\", \"kernel_version\": \"4.10\" },";
+  fi
+
+  # Create billing tags block for manifest if exists
+  if [ -n "${billingtags}" ]; then
+    mi_manifest_billingtags_block="\"billing_tags\": [ \"${billingtags}\" ],";
+  fi
+
+  # Create homepage tags block for manifest if exists
+  if [ -n "${homepage}" ]; then
+    mi_manifest_homepage_block="\"homepage\": \"${homepage}\",";
+  fi
+
+  # Create networks block for manifest if exists
+  for net in ${networks}; do
+    mi_manifest_networks_snippet="${mi_manifest_networks_snippet+${mi_manifest_networks_snippet}, }{\"name\": \"${net}\", \"description\": \"${!net}\"}";
+  done
+  if [ -n "${mi_manifest_networks_snippet}" ]; then
+    mi_manifest_networks_block="\"networks\": [ ${mi_manifest_networks_snippet} ]";
+  else
+    mi_manifest_networks_block='"networks": [ {"name": "net0", "description": "public"} ]';
+  fi
+
+  mi_manifest_owneruuid="${owneruuid}";
+  mi_manifest_ownername="${ownername}";
+
+  # Get file details
+  mi_file_time=$(ls -l --time-style '+%Y-%m-%dT%H:%M:%SZ' ${mi_bfinal_dump} | awk '{ print $6 }');
+  mi_file_hash=$(digest -a sha1 ${mi_bfinal_dump});
+  mi_file_size=$(ls -l ${mi_bfinal_dump} | awk '{ print $5 }');
+  mi_manifest_uuid=$(uuid);
+
+sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest_imgapi}
+{
+  "v": "2",
+  "uuid": "${mi_manifest_uuid}",
+  "owner": "${mi_manifest_owneruuid}",
+  "name": "${name}",
+  "version": "${version}",
+  "state": "active",
+  "disabled": false,
+  "public": false,
+  "published_at": "${mi_file_time}",
+  "type": "lx-dataset",
+  "os": "linux",
+  "files": [
+    { 
+      "sha1": "${mi_file_hash}",
+      "size": ${mi_file_size},
+      "compression": "${compression}"
+    }
+  ],
+  "description": "${description}",
+  ${mi_manifest_homepage_block}
+  "requirements": {
+    ${mi_manifest_minram_block}
+    ${mi_manifest_networks_block},
+    "min_platform": {
+      "7.0": "20171012T005133Z"
+    },
+    "brand": "lx"
+  },
+  ${mi_manifest_users_block}
+  ${mi_manifest_role_block}
+  ${mi_manifest_billingtags_block}
+}
+EOF
+
+sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest_dsapi}
+{
+  "uuid": "${mi_manifest_uuid}",
+  "name": "${name}",
+  "version": "${version}",
+  "description": "${description}",
+  "os": "smartos",
+  "type": "lx-dataset",
+  "vendor_uuid": "${mi_manifest_owneruuid}",
+  "creator_uuid": "${mi_manifest_owneruuid}",
+  "creator_name": "${mi_manifest_ownername}",
+  "published_at": "${mi_file_time}",
+  "files": [
+    { 
+      "path": "${name}-${version}.zfs.${mi_bfinal_dump_ext}",
+      "sha1": "${mi_file_hash}",
+      "size": ${mi_file_size}
+    }
+  ],
+  ${mi_manifest_homepage_block}
+  "requirements": {
+    ${mi_manifest_minram_block}
+    ${mi_manifest_networks_block},
+    "min_platform": {
+      "7.0": "20171012T005133Z"
+    },
+    "brand": "lx"
+  },
+  ${mi_manifest_users_block}
+  ${mi_manifest_role_block}
+  ${mi_manifest_billingtags_block}
+}
+EOF
+
+	printf "OK.\n\n";
+}
