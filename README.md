@@ -12,9 +12,9 @@ SmartOS users should use the following process: [Creating a Custom Zone Image]  
 
 
 ## Prerequisites
-* [Add your SSH key to github] (https://help.github.com/articles/generating-ssh-keys)
-* [Install SmartOS] (http://wiki.smartos.org/display/DOC/Download+SmartOS)
-* [Install Pkgsrc] (http://wiki.smartos.org/display/DOC/Installing+pkgin)
+* [Add your SSH key to github](https://help.github.com/articles/generating-ssh-keys)
+* [Install SmartOS](http://wiki.smartos.org/display/DOC/Download+SmartOS)
+* [Install Pkgsrc](http://wiki.smartos.org/display/DOC/Installing+pkgin)
 * Install Git
 
         # pkgin install scmgit
