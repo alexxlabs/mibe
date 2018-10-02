@@ -642,7 +642,6 @@ zone_unconfigure_buildzone() {
 
 ###############################
 # lx-brand additions
-# lx-brand additions
 zone_lx_boot() {
 	printf "%-70s" "* Booting build zone (${mi_bzonet})..";
 
@@ -863,6 +862,9 @@ sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest_imgapi}
   ],
   "description": "${description}",
   ${mi_manifest_homepage_block}
+  ${mi_manifest_users_block}
+  ${mi_manifest_role_block}
+  ${mi_manifest_billingtags_block}
   "requirements": {
     ${mi_manifest_minram_block}
     ${mi_manifest_networks_block},
@@ -870,10 +872,7 @@ sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest_imgapi}
       "7.0": "20171012T005133Z"
     },
     "brand": "lx"
-  },
-  ${mi_manifest_users_block}
-  ${mi_manifest_role_block}
-  ${mi_manifest_billingtags_block}
+  }
 }
 EOF
 
@@ -897,6 +896,9 @@ sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest_dsapi}
     }
   ],
   ${mi_manifest_homepage_block}
+  ${mi_manifest_users_block}
+  ${mi_manifest_role_block}
+  ${mi_manifest_billingtags_block}
   "requirements": {
     ${mi_manifest_minram_block}
     ${mi_manifest_networks_block},
@@ -904,10 +906,7 @@ sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest_dsapi}
       "7.0": "20171012T005133Z"
     },
     "brand": "lx"
-  },
-  ${mi_manifest_users_block}
-  ${mi_manifest_role_block}
-  ${mi_manifest_billingtags_block}
+  }
 }
 EOF
 
