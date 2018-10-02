@@ -696,55 +696,6 @@ zone_configure_lx_buildzone() {
 
 	printf "OK.\n";
 }
-
-###############################
-# lx-brand additions
-zone_lx_boot() {
-	printf "%-70s" "* Booting build zone (${mi_bzonet})..";
-
-	zoneadm -z ${mi_bzone} boot &> /dev/null || failtest "Unable to boot ${mi_bzone}.";
-
-	# not nice, but it works
-	sleep 15;
-	printf "OK.\n";
-}
-zone_configure_lx_buildzone() {
-	printf "%-70s" "* Configuring build zone (${mi_bzonet}) to be imaged..";
-
-	# Unmount cores filesystem zones/cores/mi_bzone from build zone mi_bzone
-	zfs unmount zones/cores/${mi_bzone} || failtest "Unable to unmount zones/cores/${mi_bzone}.";
-
-	# Detach existing dataset from build zone mi_bzone
-	zoneadm -z ${mi_bzone} detach 2> /dev/null || failtest "Unable to detach dataset from ${mi_bzone}.";
-
-	# Snapshot the build (base) image mi_bimage as zones/mi_bimage@name-version
-	zfs snapshot ${mi_bimage_snap} &> /dev/null || failtest "Unable to snapshot ${mi_bimage_snap}.";
-
-	# Clone the snapshot above mi_bimage_snap into build image template mi_bzone_tplate (zones/name-version)
-	zfs clone ${mi_bimage_snap} ${mi_bzone_tplate} &> /dev/null || failtest "Unable to clone ${mi_bimage_snap} to ${mi_bzone_tplate}.";
-
-	# Re-configure build zone mi_bzone with build image template mi_bzone_tplate
-	zonecfg -z ${mi_bzone} -f - &> /dev/null <<-EOF
-	set zonepath=/${mi_bzone_tplate}
-	EOF
-
-	# Attach build zone mi_bzone to mi_bzone_tplate (zones/name-version)
-	zoneadm -z ${mi_bzone} attach -F &> /dev/null || failtest "Unable to attach build zone ${mi_bzone} to ${mi_bzone_tplate}.";
-
-	# Configure networking for build zone mi_bzone
-	mi_bzone_vnics=($(zonecfg -z ${mi_bzone} info net 2>/dev/null | \
-	  awk '{if($1~/physical/) print $2}'));
-
-	mi_bzone_oldpath=$(eval echo $(zonecfg -z ${mi_bzone} \
-	  info attr name=mi-zpath 2>/dev/null | \
-	  awk -F: '{if ($1~/value/) print $2}'));
-
-	mv /${mi_bzone_tplate}/root/etc/resolv.conf{,.orig} 2> /dev/null || true;
-	cp -p ${mi_bzone_oldpath}/root/etc/resolv.conf \
-	  /${mi_bzone_tplate}/root/etc/resolv.conf 2> /dev/null || true;
-
-	printf "OK.\n";
-}
 zone_delete_lx_packages() {
 	if [[ -f "${mi_brepo_path}/delete_packages" ]]; then
     IFS=$'\n\r';
