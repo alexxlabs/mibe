@@ -642,21 +642,14 @@ zone_unconfigure_buildzone() {
 
 ###############################
 # lx-brand additions
+# lx-brand additions
 zone_lx_boot() {
 	printf "%-70s" "* Booting build zone (${mi_bzonet})..";
 
 	zoneadm -z ${mi_bzone} boot &> /dev/null || failtest "Unable to boot ${mi_bzone}.";
 
-	zone_timeout="30";
-	while true; do
-		mi_bzone_state=$(zlogin ${mi_bzone} '[[ `/sbin/runlevel | cut -d " " -f 2` == 5 ]] && echo "Ready"');
-		[[ "${mi_bzone_state}" == "Ready" ]] && break;
-		sleep 1;
-
-		zone_timeout=$((zone_timeout - 1));
-		[[ ${zone_timeout} -le 0 ]] && failtest "Unable to boot zone ${mi_bzone}."; 
-	done
-
+	# not nice, but it works
+	sleep 15;
 	printf "OK.\n";
 }
 zone_configure_lx_buildzone() {
