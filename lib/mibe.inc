@@ -397,11 +397,11 @@ zone_install_packages() {
 		if [[ ! -z "${mi_bzone_packages}" ]]; then
 			printf "%-70s" "* Installing packages list..";
 
-			echo "pkgadd -v ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
+			echo "pkg_add -U -v ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
 
 			mi_bzone_result=$(zlogin ${mi_bzone} \
 			  PATH=/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin \
-			  pkg_add -v ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
+			  pkg_add -U -v ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
 			  | tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
 
 			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}.";
