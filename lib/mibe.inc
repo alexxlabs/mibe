@@ -711,29 +711,60 @@ zone_delete_lx_packages() {
 }
 zone_install_lx_packages() {
 	# First run pkgin update
-	mi_bzone_result=$(zlogin ${mi_bzone} 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
-             apt-get -qq update 2>&1' >> ${mi_bzone_logall} \
-            | tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?);
+	yum=$(zlogin ${mi_bzone} '[[ -x /bin/yum ]] && echo "1" || echo "0"')
+	if [ $yum = "1" ]; then
+		# centos 7 with yum
+		mi_bzone_result=$(zlogin ${mi_bzone} 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+					yum -y update 2>&1' >> ${mi_bzone_logall} \
+					| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?);
+	
+		[[ ! ${mi_bzone_result} ]] || failtest "Unable to update yum list.";
+	
+		if [[ -f "${mi_brepo_path}/packages" ]]; then
+			IFS=$'\n\r';
+			mi_bzone_packagesr=($(cat ${mi_brepo_path}/packages));
+			unset IFS;
+			mi_bzone_packages=(${mi_bzone_packagesr[@]/\#*/});
 
-	[[ ! ${mi_bzone_result} ]] || failtest "Unable to update apt list.";
+			if [[ ! -z "${mi_bzone_packages}" ]]; then
+				printf "%-70s" "* Installing packages list..";
 
-	if [[ -f "${mi_brepo_path}/packages" ]]; then
-    		IFS=$'\n\r';
-		mi_bzone_packagesr=($(cat ${mi_brepo_path}/packages));
-		unset IFS;
-		mi_bzone_packages=(${mi_bzone_packagesr[@]/\#*/});
+				echo "apt-get -qq install ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
 
-		if [[ ! -z "${mi_bzone_packages}" ]]; then
-			printf "%-70s" "* Installing packages list..";
+				mi_bzone_result=$(zlogin ${mi_bzone} \
+					PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+					yum -y install ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
+					| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
+	
+				[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}.";
+			fi
+		fi
+  else
+		# debian/ubuntu with apt
+		mi_bzone_result=$(zlogin ${mi_bzone} 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+					 apt-get -qq update 2>&1' >> ${mi_bzone_logall} \
+					| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?);
+	
+		[[ ! ${mi_bzone_result} ]] || failtest "Unable to update apt list.";
 
-			echo "apt-get -qq install ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
+		if [[ -f "${mi_brepo_path}/packages" ]]; then
+			IFS=$'\n\r';
+			mi_bzone_packagesr=($(cat ${mi_brepo_path}/packages));
+			unset IFS;
+			mi_bzone_packages=(${mi_bzone_packagesr[@]/\#*/});
 
-			mi_bzone_result=$(zlogin ${mi_bzone} \
-			  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
-			  apt-get -qq install ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
-			  | tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
+			if [[ ! -z "${mi_bzone_packages}" ]]; then
+				printf "%-70s" "* Installing packages list..";
 
-			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}.";
+				echo "apt-get -qq install ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
+
+				mi_bzone_result=$(zlogin ${mi_bzone} \
+					PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+					apt-get -qq install ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
+					| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
+	
+				[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}.";
+			fi
 		fi
 	fi
 }
