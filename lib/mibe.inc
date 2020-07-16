@@ -718,7 +718,7 @@ zone_install_lx_packages() {
 					yum -y update 2>&1' >> ${mi_bzone_logall} \
 					| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?);
 	
-		[[ ! ${mi_bzone_result} ]] || failtest "Unable to update yum list.";
+		# [[ ! ${mi_bzone_result} ]] || failtest "Unable to update yum list.";
 	
 		if [[ -f "${mi_brepo_path}/packages" ]]; then
 			IFS=$'\n\r';
@@ -742,7 +742,8 @@ zone_install_lx_packages() {
   else
 		# debian/ubuntu with apt
 		mi_bzone_result=$(zlogin ${mi_bzone} 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
-					 apt-get -qq update 2>&1' >> ${mi_bzone_logall} \
+					DEBIAN_FRONTEND=noninteractive \
+					apt-get -qq update 2>&1' >> ${mi_bzone_logall} \
 					| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?);
 	
 		[[ ! ${mi_bzone_result} ]] || failtest "Unable to update apt list.";
@@ -760,6 +761,7 @@ zone_install_lx_packages() {
 
 				mi_bzone_result=$(zlogin ${mi_bzone} \
 					PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+					DEBIAN_FRONTEND=noninteractive \
 					apt-get -qq install ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
 					| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
 	
