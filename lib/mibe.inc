@@ -376,7 +376,7 @@ zone_delete_packages() {
 			  pkg_delete -v ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
 			  | tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
 
-			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error deleting the packages list.\n! See ${mi_bzone_logerr}.";
+			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error deleting the packages list.\n! See ${mi_bzone_logerr}";
 		fi
 	fi
 }
@@ -404,10 +404,9 @@ zone_install_packages() {
 			  pkg_add -U -v ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
 			  | tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
 
-			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}.";
+			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}";
 		fi
 	fi
-		
 }
 zone_exec_customize() {
 	if [[ -f "${mi_brepo_path}/customize" ]]; then
@@ -419,7 +418,7 @@ zone_exec_customize() {
 		mi_bzone_result=$(zlogin ${mi_bzone} /root/customize 2>&1 >> ${mi_bzone_logall} \
 		  | tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?);
 
-		[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error during execution of the customize file.\n! See ${mi_bzone_logerr}.";
+		[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error during execution of the customize file.\n! See ${mi_bzone_logerr}";
 	fi
 }
 zone_cleanup() {
@@ -705,7 +704,7 @@ zone_delete_lx_packages() {
 			  apt-get -qq purge ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
 			  | tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
 
-			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error deleting the packages list.\n! See ${mi_bzone_logerr}.";
+			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error deleting the packages list.\n! See ${mi_bzone_logerr}";
 		fi
 	fi
 }
@@ -736,7 +735,7 @@ zone_install_lx_packages() {
 					yum -y install ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
 					| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
 	
-				[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}.";
+				[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}";
 			fi
 		fi
   else
@@ -765,7 +764,7 @@ zone_install_lx_packages() {
 					apt-get -qq install ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
 					| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
 	
-				[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}.";
+				[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}";
 			fi
 		fi
 	fi
