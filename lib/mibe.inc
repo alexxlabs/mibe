@@ -739,8 +739,9 @@ zone_install_lx_packages() {
 			fi
 		fi
   else
-		# debian/ubuntu with apt
-		mi_bzone_result=$(zlogin ${mi_bzone} 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+		# debian/ubuntu with apt; on debian-10 'fix' ldconfig issue
+		mi_bzone_result=$(zlogin ${mi_bzone} '[[$(lsb_release --release |awk '{print $2}') -ge 10 ]] && [[ -f /usr/sbin/ldconfig ]] && mv /usr/sbin/ldconfig /usr/sbin/ldconfig.real && ln -nfs /usr/bin/true /usr/sbin/ldconfig; \
+					PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
 					DEBIAN_FRONTEND=noninteractive \
 					apt-get -qq update 2>&1' >> ${mi_bzone_logall} \
 					| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?);
