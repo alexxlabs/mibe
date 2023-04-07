@@ -300,7 +300,7 @@ zone_copyin_files() {
 
 		(cd ${mi_brepo_path}/copy && gtar -c . | gtar -C /${mi_bzone_tplate}/root -x);
 		for mi_bzone_copydir in ${mi_bzone_copydirs[@]}; do
-			mi_bzone_copydir_files=$(find ${mi_bzone_copydir} | egrep -v "/copy$");
+			mi_bzone_copydir_files=$(find ${mi_bzone_copydir} | /opt/tools/bin/grep -E -v "/copy$");
 			for mi_bzone_copydir_file in ${mi_bzone_copydir_files[@]}; do
 				mi_bzone_copydir_filet=$(echo "${mi_bzone_copydir_file}" | nawk -F"copy" '{ print $2 }');  
 				chown root:root /${mi_bzone_tplate}/root/${mi_bzone_copydir_filet}
@@ -728,7 +728,7 @@ zone_install_lx_packages() {
 			if [[ ! -z "${mi_bzone_packages}" ]]; then
 				printf "%-70s" "* Installing packages list..";
 
-				echo "apt-get -qq install ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
+				echo "yum -y install ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
 
 				mi_bzone_result=$(zlogin ${mi_bzone} \
 					PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
@@ -743,7 +743,7 @@ zone_install_lx_packages() {
 		mi_bzone_result=$(zlogin ${mi_bzone} '[[$(lsb_release --release |awk '{print $2}') -ge 10 ]] && [[ -f /usr/sbin/ldconfig ]] && mv /usr/sbin/ldconfig /usr/sbin/ldconfig.real && ln -nfs /usr/bin/true /usr/sbin/ldconfig; \
 					PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
 					DEBIAN_FRONTEND=noninteractive \
-					apt-get -qq update 2>&1' >> ${mi_bzone_logall} \
+					apt-get -qq -o Dpkg::Options::="--force-confold" update 2>&1' >> ${mi_bzone_logall} \
 					| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?);
 	
 		[[ ! ${mi_bzone_result} ]] || failtest "Unable to update apt list.";
@@ -757,12 +757,12 @@ zone_install_lx_packages() {
 			if [[ ! -z "${mi_bzone_packages}" ]]; then
 				printf "%-70s" "* Installing packages list..";
 
-				echo "apt-get -qq install ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
+				echo "apt-get -qq -o Dpkg::Options::=\"--force-confold\" install ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
 
 				mi_bzone_result=$(zlogin ${mi_bzone} \
 					PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
 					DEBIAN_FRONTEND=noninteractive \
-					apt-get -qq install ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
+					apt-get -qq -o Dpkg::Options::="--force-confold" install ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
 					| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
 	
 				[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}";
