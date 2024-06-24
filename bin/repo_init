@@ -16,16 +16,16 @@ usage() {
 	Usage: $0 [options] TYPE REPOSITORY
 
 	Arguments:
-    
-        TYPE              Type of build repository to initialize.
-                          Supported types: smartos
-        REPOSITORY        Name of build repository to initialize.
-       	                  eg: mi-percona
+
+		TYPE		Type of build repository to initialize.
+					Supported types: smartos
+		REPOSITORY	Name of build repository to initialize.
+					eg: mi-percona
 
 	Options:
-   
-        -g                Git support.  Assumes your repository is already created
-                          on the server and creates/commits the intial files.
+
+		-g		Git support.  Assumes your repository is already created
+				on the server and creates/commits the intial files.
 
 	EOF
 
@@ -33,26 +33,27 @@ usage() {
 }
 
 while getopts "g" OPTION; do
-        case $OPTION in
-                g)	opt_g="true";	;;
-                *)	usage;		;;
-        esac
+	case $OPTION in
+			g)	opt_g="true";	;;
+			*)	usage;		;;
+	esac
 done
 
 shift $(($OPTIND - 1))
 if [[ $# = 2 ]]; then
-        mi_type="$1";
-        mi_repo="$2";
+	mi_type="$1";
+	mi_repo="$2";
 else
-        usage;
+	usage;
 fi
 
 [[ ${mi_type} != "smartos" ]] && usage;
 
 # Set mi_home and source mi_home/lib/mibe.inc if exists
 mi_home=$(dirname $(cd ${0%/*} && pwd -P));
-[[ -s "${mi_home}/lib/mibe.inc" ]] && source ${mi_home}/lib/mibe.inc || { echo "* ERROR - ${mi_home}/lib/mibe.inc not found,
- can't continue."; exit 1; }
+[[ -s "${mi_home}/lib/mibe.inc" ]] \
+	&& source ${mi_home}/lib/mibe.inc \
+	|| { echo "* ERROR - ${mi_home}/lib/mibe.inc not found, can't continue."; exit 1; }
 
 mi_image=$(echo ${mi_repo} | sed 's/mi-//g');
 get_reposdir;

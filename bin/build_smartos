@@ -21,21 +21,21 @@ usage() {
 
 	Options:
 
-	       None at this time.
+			None at this time.
 
 	Arguments:
-    
-	       BUILD_BASE      Build image to use for base of the image.  This image
-	                       must already exist in the ZFS hierarchy.
-	                       e.g. base64-13.2.1
 
-	       BUILD_ZONE      Build zone to use for building out the image.  The
-	                       UUID of a zone that is already installed and running.
-	                       e.g. b23882cc-3d9e-11e3-aa2f-83b8d8746936
+		BUILD_BASE	Build image to use for base of the image.  This image
+					must already exist in the ZFS hierarchy.
+					e.g. base64-13.2.1
 
-	       BUILD_REPO      Build repository to use which contains the necessary
-	                       build files for the image.
-	                       e.g. mi-percona
+		BUILD_ZONE	Build zone to use for building out the image.  The
+					UUID of a zone that is already installed and running.
+					e.g. b23882cc-3d9e-11e3-aa2f-83b8d8746936
+
+		BUILD_REPO	Build repository to use which contains the necessary
+					build files for the image.
+					e.g. mi-percona
 
 	EOF
 
@@ -45,16 +45,18 @@ mi_version="1.0.0";
 
 shift $(($OPTIND - 1))
 if [[ $# = 3 ]]; then
-        mi_bimage="$1";
-        mi_bzone="$2";
-        mi_brepo="$3";
+	mi_bimage="$1";
+	mi_bzone="$2";
+	mi_brepo="$3";
 else
-        usage;
+	usage;
 fi
 
 # Set mi_home and source mi_home/lib/mibe.inc if exists
 mi_home=$(dirname $(cd ${0%/*} && pwd -P));
-[[ -s "${mi_home}/lib/mibe.inc" ]] && source ${mi_home}/lib/mibe.inc || { echo "* ERROR - ${mi_home}/lib/mibe.inc not found, can't continue."; exit 1; }
+[[ -s "${mi_home}/lib/mibe.inc" ]] \
+	&& source ${mi_home}/lib/mibe.inc \
+	|| { echo "* ERROR - ${mi_home}/lib/mibe.inc not found, can't continue."; exit 1; }
 
 trap zone_cleanup_sighandler INT TERM;
 
