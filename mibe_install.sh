@@ -9,7 +9,7 @@ source ./mibe_lib.sh
 echo -n ">>> checking 'gh' tool: "
 command -v gh >/dev/null 2>&1 \
 	&& gh version \
-	|| echo >&2 "not installed."
+	|| die "gh not installed."
 
 echo -n ">>> processing ${DS_MIBE} ... "
 ds_exists=$(zfs list -H -o name| grep "${DS_MIBE}")
