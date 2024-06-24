@@ -12,3 +12,4 @@ images/
 logs/
 repos/
 .DS_Store
+.mibecfg
