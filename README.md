@@ -11,13 +11,17 @@ SmartOS users should use the following process: [Creating a Custom Zone Image]  
 
 ## Installation
 
-curl https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_install.sh | bash
+		curl https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_install.sh | bash
 
-defaults:
+defaults variables:
 : ${DS_MIBE:="tank/mibe"}
 : ${DS_MIBE_QUOTA:="300G"}
 
+mibe will be installed to: MI_HOME=/${DS_MIBE}
+
 if you wish, you may override this by doing:
+
+		echo 'DS_MIBE="newdataset"'| cat - <(curl -s https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_install.sh)| bash
 
 
 ## Prerequisites
