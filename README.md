@@ -14,10 +14,13 @@ SmartOS users should use the following process: [Creating a Custom Zone Image]  
 		curl https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_install.sh | bash
 
 defaults variables:
-: ${DS_MIBE:="tank/mibe"}
-: ${DS_MIBE_QUOTA:="300G"}
 
-mibe will be installed to: MI_HOME=/${DS_MIBE}
+* DS_MIBE="tank/mibe"
+* DS_MIBE_QUOTA="300G"
+
+mibe will be installed to:
+
+* MI_HOME=/${DS_MIBE}
 
 if you wish, you may override this by doing:
 
