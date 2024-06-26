@@ -17,9 +17,8 @@ zfs set xattr=off ${DS_MIBE}
 zfs set atime=off ${DS_MIBE}
 zfs set compression=lz4 ${DS_MIBE}
 
-cd $(dirname "${MI_HOME}")
-[[ ! -d "$(basename ${MI_HOME})" ]] && git clone https://github.com/alexxlabs/mibe.git
-cd ${MI_HOME} &&  git pull
+cd "${MI_HOME}"
+[[ ! -d "./.git)" ]] && git clone https://github.com/alexxlabs/mibe.git . || git pull
 
 # Additional defaults will be loaded from mi_home/.mibecfg and $HOME/.mibecfg.
 # This configuration needs to be bash sourceable.
