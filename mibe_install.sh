@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source $(curl https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_lib.sh)
+source <(curl https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_lib.sh)
 die "${DS_MIBE}"
 
 echo -n ">>> checking 'gh' tool... "
