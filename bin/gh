@@ -1,0 +1,207 @@
+#!/usr/bin/env bash
+
+# https://www.websentra.com/bash-cheat-sheet/
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+# To make life easier, start the script with the following:
+set -euo pipefail
+# It adds some strictness to Bash to make it better suited for programming:
+#	exit immediately on failures
+#	exit immediately if an undefined variable is referenced
+#	make errors visible in pipelines
+
+PROGRAM=$(basename "$0")
+VERSION="0.0.1"
+
+readonly gh_api_url="https://api.github.com"
+readonly gh_user_name=$(git config user.name)
+readonly gh_user_token=$(git config user.token)
+
+print() {
+	echo -e "\033[1m* ${1}\033[0m"
+}
+
+die() {
+	printf '\033[1;31mERROR:\033[0m %s\n' "$@" >&2  # bold red
+	exit 1
+}
+
+# Print version number
+version() {
+	print "$PROGRAM v$VERSION"
+}
+
+function gh_get_rate_limit() {
+	# if you have to define variables annotate them with 'local'.
+	# This ensures that the variable is only available inside the function and it's not polluting the global scope.
+	# Note, that Google's Bash style guide recommends to put the 'declaration' and the 'assignment' of 'local'
+	# variables into different lines because 'local' does not propagate the exit code of substituted commands.
+	local endpoint="users/${gh_user_name}"
+	local URL="${gh_api_url}/${endpoint}"
+
+	# Using --silent has the undesired consequence of silencing error messages as well.
+	# To reenable them, use --show-error (or -S).
+	response=$(curl --silent -L -I \
+		-H "Accept: application/vnd.github+json" \
+		-H "Authorization: Bearer ${gh_user_token}" \
+		-H "X-GitHub-Api-Version: 2022-11-28" \
+		-w "%{http_code}" $URL)
+	http_code=$(tail -n1 <<< "$response")  # get the last line
+	content=$(sed '$ d' <<< "$response")   # get all but the last line which contains the status code
+	echo "$http_code"
+	echo "--------------"
+	echo "$content"| grep X-RateLimit
+}
+
+# https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user
+function gh_clone_repos() {
+	local gh_root_dir=${1:-repos}
+	shift
+	local gh_mask=${1:-mi-alexxlabs}
+	shift
+	local gh_visibility=${1:-all}
+
+	[[ -d ${gh_root_dir} ]] \
+		&& print "${gh_root_dir} exists" \
+		|| die "${gh_root_dir} not found..."
+
+	local endpoint="user/repos?visibility=${gh_visibility}"
+	local URL="${gh_api_url}/${endpoint}"
+
+	response=$(curl -s -L \
+		-H "Accept: application/vnd.github+json" \
+		-H "Authorization: Bearer ${gh_user_token}" \
+		-H "X-GitHub-Api-Version: 2022-11-28" \
+		-w "%{http_code}" ${URL})
+
+	http_code=$(tail -n1 <<< "$response")  # get the last line
+	declare -A http_code_responces=(
+		["200"]="OK"
+		["304"]="Not modified"
+		["401"]="Requires authentication"
+		["403"]="Forbidden"
+		["422"]="Validation failed, or the endpoint has been spammed."
+	)
+	[[ "x${http_code}" != "x200" ]] && die "${http_code_responces[$http_code]}"
+	print "${http_code_responces[$http_code]}"
+	print "--------------"
+
+	content=$(sed '$ d' <<< "$response")   # get all but the last line which contains the status code
+	repos=$(echo "$content"| jq -r '.[] | "\(.name)@\(.html_url)"'| grep "${gh_mask}")
+	for repo in ${repos[*]}
+	do
+		repo_name=$(echo "${repo}" | cut -d "@" -f 1)
+		repo_url=$(echo "${repo}" | cut -d "@" -f 2)
+		print "${repo_name}"
+		cd ${gh_root_dir}
+		[[ ! -d "./${repo_name}" ]] && git clone ${repo_url}
+		cd "./${repo_name}" &&  git pull && cd ..
+		print "--------------"
+	done
+}
+
+# https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#create-a-repository-for-the-authenticated-user
+function gh_repo_new() {
+	local gh_reponame=${1:-mi-alexxlabs-new}
+	shift
+
+	local endpoint="user/repos"
+	local URL="${gh_api_url}/${endpoint}"
+
+	response=$(
+	curl -s -L \
+		-X POST \
+		-H "Accept: application/vnd.github+json" \
+		-H "Authorization: Bearer ${gh_user_token}" \
+		-H "X-GitHub-Api-Version: 2022-11-28" \
+		-w "%{http_code}" ${URL} \
+		--data @<(cat <<EOF
+		{
+			"name" : "${gh_reponame}",
+			"description":"${gh_reponame}",
+			"homepage":"https://alexxlabs.com",
+			"private" : "true"
+		}
+EOF
+		)
+	)
+		# "is_template":true
+
+	http_code=$(tail -n1 <<< "$response")  # get the last line
+	declare -A http_code_responces=(
+		["201"]="Created"
+		["304"]="Not modified"
+		["400"]="Bad Request"
+		["401"]="Requires authentication"
+		["403"]="Forbidden"
+		["404"]="Resource not found"
+		["422"]="Validation failed, or the endpoint has been spammed."
+	)
+	[[ "x${http_code}" != "x201" ]] && die "${http_code_responces[$http_code]}"
+	print "${http_code_responces[$http_code]}"
+	exit 0
+	#print "--------------"
+	#content=$(sed '$ d' <<< "$response")   # get all but the last line which contains the status code
+	#print "--------------"
+}
+
+
+# Print usage information
+usage() {
+	cat <<- EOF >&2
+	$PROGRAM v$VERSION
+
+	Usage: $PROGRAM <command>
+	Commands:
+	    version|ver					Print program version
+	    help					Print help (this screen)
+	    rate					get API rate limit
+	    clone <root_dir> <mask> <visibility>	clone repos into <root_dir> by mask
+		        * root_dir: <curr_dir>/repos
+		        * mask:     <mi-alexxlabs>
+		        * visibility: <all>|public|private
+	    reponew <reponame>				remotely create new repo on github
+	EOF
+}
+
+arg=${1:-help}; shift
+if [ -n "$arg" ]; then
+	case $arg in
+		help) usage; exit ;;
+		version|ver) version; exit ;;
+		rate) gh_get_rate_limit; exit ;;
+		clone) gh_clone_repos "$@"; exit ;;
+		reponew) gh_repo_new "$@"; exit ;;
+		*) print "uncknown arg: $arg" ;;
+	esac
+fi
+
+
+# Errors=0
+# Green='\033[0;32m'
+# Red='\033[0;31m'
+# Color_Off='\033[0m'
+# Check_Mark='\xE2\x9C\x94'
+# assert_equals () {
+# 	if [ "$1" = "$2" ]; then
+# 		echo -e "$Green $Check_Mark Success $Color_Off"
+# 	else
+# 		echo -e "$Red Failed $Color_Off"
+# 		echo -e "$Red Expected $1 to equal $2 $Color_Off"
+# 		Errors=$((Errors  + 1))
+# 	fi
+# }
+# get_json_value () {
+# 	echo $1 | jq -r $2
+# }
+# get_json_array_length () {
+# 	echo $1 | jq ". | length"
+# }
+# shelters_url="localhost:5000/api/v2/shelters/" 
+# response=$(curl -s "${shelters_url}?lat=59.3618&long=18.1205")
+# assert_equals "$(get_json_array_length "$response")" "20"
+# assert_equals "$(get_json_value "$response" ".[0].shelterId")" "163753-5"
+# if [ "$Errors" -gt "0" ]; then
+# 	exit 1
+# else
+# 	exit 0
+# fi

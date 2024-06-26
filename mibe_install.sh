@@ -7,11 +7,6 @@ command -v git >/dev/null 2>&1 \
 	&& git version \
 	|| die "git not installed."
 
-echo -n ">>> checking 'gh' tool... "
-command -v gh >/dev/null 2>&1 \
-	&& gh version \
-	|| die "gh not installed."
-
 echo -n ">>> processing ${DS_MIBE} ... "
 ds_exists=$(zfs list -H -o name| grep "${DS_MIBE}")
 [[ "x${ds_exists}" != "x" ]] \

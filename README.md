@@ -9,14 +9,22 @@ SDC customers should see the following for building SmartOS images: [How to Crea
 
 SmartOS users should use the following process: [Creating a Custom Zone Image]  (http://wiki.smartos.org/display/DOC/Managing+Images#ManagingImages-CreatingaCustomZoneImage)
 
+## Prerequisites
+* [Add your SSH key to github](https://help.github.com/articles/generating-ssh-keys)
+* [Install SmartOS](http://wiki.smartos.org/display/DOC/Download+SmartOS)
+* [Install Pkgsrc](http://wiki.smartos.org/display/DOC/Installing+pkgin)
+* Install Git
+
+		# pkgin install git-base
+
 ## Installation
 
 		curl https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_install.sh | bash
 
 defaults variables:
 
-* DS_MIBE="tank/mibe"
-* DS_MIBE_QUOTA="300G"
+* DS_MIBE="tank/mibe"	(this dataset will be created by installation)
+* DS_MIBE_QUOTA="300G"	(dataset quota)
 
 mibe will be installed to:
 
@@ -29,18 +37,6 @@ if you wish, you may override this by doing:
 			| bash
 
 
-## Prerequisites
-* [Add your SSH key to github](https://help.github.com/articles/generating-ssh-keys)
-* [Install SmartOS](http://wiki.smartos.org/display/DOC/Download+SmartOS)
-* [Install Pkgsrc](http://wiki.smartos.org/display/DOC/Installing+pkgin)
-* Install Git
-
-		# pkgin install scmgit
-
-* Import latest base/base64 image to build images from:
-
-        # imgadm import $(imgadm avail | awk '/base64/ { print $1 }' | tail -1)
-
 ## Layout
 
 * mi_home/bin - Holds scripts to handle repository operations and build images.
@@ -49,6 +45,7 @@ if you wish, you may override this by doing:
     * bin/repo_pullall - Pulls latest Joyent Machine Image repositories into mi_home/repos.
     * bin/repo_init - Initializes a new Machine Image repository and populates standard build files.
     * bin/build_smartos - Image builder for SmartOS images.
+	* bin/gh - custom github client (use github API to deal with github repositories)
 
 * mi_home/etc - Where configuration files for repositories are kept.
 
