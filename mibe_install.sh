@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
 source <(curl https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_lib.sh)
-die "${DS_MIBE}"
+
+echo -n ">>> checking 'git' tool... "
+command -v git >/dev/null 2>&1 \
+	&& git version \
+	|| die "git not installed."
 
 echo -n ">>> checking 'gh' tool... "
 command -v gh >/dev/null 2>&1 \

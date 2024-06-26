@@ -24,7 +24,9 @@ mibe will be installed to:
 
 if you wish, you may override this by doing:
 
-		echo 'DS_MIBE="newdataset"'| cat - <(curl -s https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_install.sh)| bash
+		echo 'DS_MIBE="newdataset"' \
+			| cat - <(curl -s https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_install.sh)
+			| bash
 
 
 ## Prerequisites
