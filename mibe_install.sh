@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 
-# parce parameters:
-readonly MODE=${1:-list}; shift
-#readonly NODE=${2:-master} # ; shift
+source $(curl https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_lib.sh)
+die "${DS_MIBE}"
 
-source ./mibe_lib.sh
-
-echo -n ">>> checking 'gh' tool: "
+echo -n ">>> checking 'gh' tool... "
 command -v gh >/dev/null 2>&1 \
 	&& gh version \
 	|| die "gh not installed."

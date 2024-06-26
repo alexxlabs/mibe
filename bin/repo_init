@@ -24,8 +24,9 @@ usage() {
 
 	Options:
 
-		-g		Git support.  Assumes your repository is already created
-				on the server and creates/commits the intial files.
+		-g	Git support.
+			Remotly create repo on github (using custom 'gh' tool)
+			Locally create ALL needed files AND commit AND push ALL to remote repo
 
 	EOF
 
@@ -56,7 +57,16 @@ mi_home=$(dirname $(cd ${0%/*} && pwd -P));
 	|| { echo "* ERROR - ${mi_home}/lib/mibe.inc not found, can't continue."; exit 1; }
 
 mi_image=$(echo ${mi_repo} | sed 's/mi-//g');
+
 get_reposdir;
+
+[[ -d ${mi_reposdir}/${mi_repo} ]] \
+	&& { echo "* ERROR - ${mi_reposdir}/${mi_repo} exists locally, please use another command."; exit 1; }
+
 get_gitserver;
-populate_smartos;
-[[ ! -z ${opt_g} ]] && init_repo;
+
+if [[ ! -z ${opt_g} ]]; then
+	[[ $(gh reponew ${mi_repo}) ]] && populate_smartos && init_repo
+else
+	populate_smartos
+fi

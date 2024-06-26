@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 
 # parce parameters:
-readonly MODE=${1:-list}; shift
+readonly REPONAME=${1:-mi-alexxlabs-empty}; shift
 
 source ./mibe_lib.sh
 
-repo_init -g smartos mi-alexxlabs-empty
+#	-g	Git support.
+#		Remotly create repo on github (using custom 'gh' tool)
+#		Locally create ALL needed files AND commit AND push ALL to remote repo
+repo_init -g smartos "${REPONAME}"

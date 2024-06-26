@@ -72,6 +72,13 @@ populate_smartos() {
 	mkdir ${mi_reposdir}/${mi_repo} &> /dev/null \
 		|| fail "* ERROR - Couldn't create directory ${mi_reposdir}/${mi_repo}."
 
+	cat > ${mi_reposdir}/${mi_repo}/README.md <<-EOF
+# mi-alexxlabs-xxx
+
+This repository is based on [Joyent mibe](https://github.com/joyent/mibe).
+
+EOF
+
 	# Create Changelog
 	cat > ${mi_reposdir}/${mi_repo}/Changelog <<-EOF
 # Changelog for ${mi_repo}
@@ -145,21 +152,22 @@ EOF
 
 init_repo() {
 	echo "* Initializing repository ${mi_repo} at ${mi_reposdir}/${mi_repo}..";
-	cd ${mi_reposdir}/${mi_repo} 
+	cd ${mi_reposdir}/${mi_repo}
 	git init 1> /dev/null || fail "* ERROR - Couldn't git init repository at ${mi_reposdir}/${mi_repo}.";
-
 	git add .
-	git commit -m "Initial commit from $0" 1> /dev/null || fail "* ERROR - Couldn't git commit files to ${mi_reposdir}/${mi_repo}.";
-	git remote add origin ${mi_gitserver}:${mi_repo}.git 1> /dev/null || fail "* ERROR - Couldn't git remote add origin to ${mi_gitserver}:${mi_repo}.git";
-	git push origin master 1> /dev/null || fail "* ERROR - Couldn't push files to ${mi_reposdir}/${mi_gitserver}:${mi_repo}.git";
-
+	git commit -m "Initial commit from $0" 1> /dev/null \
+		|| fail "* ERROR - Couldn't git commit files to ${mi_reposdir}/${mi_repo}.";
+	git remote add origin ${mi_gitserver}/${mi_repo}.git 1> /dev/null \
+		|| fail "* ERROR - Couldn't git remote add origin to ${mi_gitserver}/${mi_repo}.git";
+	git branch -M master
+	git push origin master 1> /dev/null \
+		|| fail "* ERROR - Couldn't push files to ${mi_reposdir}/${mi_gitserver}/${mi_repo}.git";
 	echo "* Done.";
 }
 
 get_defaults() {
 	[[ -f "${mi_home}/.mibecfg" ]] && source ${mi_home}/.mibecfg;
 	[[ -f "$HOME/.mibecfg" ]] && source ${HOME}/.mibecfg;
-
 	[[ -z "${owneruuid}" ]] && owneruuid="9dce1460-0c4c-4417-ab8b-25ca478c5a78";
 	[[ -z "${ownername}" ]] && ownername="sdc";
 	[[ -z "${compression}" ]] && compression="gzip";

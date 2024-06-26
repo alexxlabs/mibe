@@ -9,6 +9,15 @@ SDC customers should see the following for building SmartOS images: [How to Crea
 
 SmartOS users should use the following process: [Creating a Custom Zone Image]  (http://wiki.smartos.org/display/DOC/Managing+Images#ManagingImages-CreatingaCustomZoneImage)
 
+## Installation
+
+curl https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_install.sh | bash
+
+defaults:
+: ${DS_MIBE:="tank/mibe"}
+: ${DS_MIBE_QUOTA:="300G"}
+
+if you wish, you may override this by doing:
 
 
 ## Prerequisites
@@ -17,7 +26,7 @@ SmartOS users should use the following process: [Creating a Custom Zone Image]  
 * [Install Pkgsrc](http://wiki.smartos.org/display/DOC/Installing+pkgin)
 * Install Git
 
-        # pkgin install scmgit
+		# pkgin install scmgit
 
 * Import latest base/base64 image to build images from:
 
