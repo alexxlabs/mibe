@@ -19,7 +19,7 @@ SmartOS users should use the following process: [Creating a Custom Zone Image]  
 
 ## Installation
 
-		curl https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_install.sh | bash
+		curl -s https://raw.githubusercontent.com/alexxlabs/mibe/master/mibe_install.sh | bash
 
 defaults variables:
 

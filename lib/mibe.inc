@@ -73,72 +73,73 @@ populate_smartos() {
 		|| fail "* ERROR - Couldn't create directory ${mi_reposdir}/${mi_repo}."
 
 	cat > ${mi_reposdir}/${mi_repo}/README.md <<-EOF
-# mi-alexxlabs-xxx
+	# mi-alexxlabs-xxx
 
-This repository is based on [Joyent mibe](https://github.com/joyent/mibe).
+	This repository is based on [Joyent mibe](https://github.com/joyent/mibe).
 
-EOF
+	EOF
 
 	# Create Changelog
 	cat > ${mi_reposdir}/${mi_repo}/Changelog <<-EOF
-# Changelog for ${mi_repo}
-${mi_image}-1.0.0
-* Change1
-* Change2
-* etc
-EOF
+	# Changelog for ${mi_repo}
+	${mi_image}-1.0.0
+	* Change1
+	* Change2
+	* etc
+	EOF
 
 	# Create manifest
 	cat > ${mi_reposdir}/${mi_repo}/manifest <<-EOF
-name="${mi_image}"
-organization="Joyent"
-brand="Instance"
-version="1.0.0"
-description="Description for image ${mi_image}"
-homepage="http://wiki.joyent.com/jpc2/${mi_image}+Instance"
-users="root admin"
-EOF
+	name="${mi_image}"
+	organization="Joyent"
+	brand="Instance"
+	version="1.0.0"
+	description="Description for image ${mi_image}"
+	homepage="http://wiki.joyent.com/jpc2/${mi_image}+Instance"
+	users="root admin"
+	EOF
 
 	# Create customize
 	cat > ${mi_reposdir}/${mi_repo}/customize <<-EOF
-#!/usr/bin/bash
-#
-# Put customizations to your image in this file.
-PATH=/opt/local/gnu/bin:/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin
-# Exit if any commands fail
-set -o errexit
-# Ensure we have updated standard packages
-echo "* Updating standard packages."
-pkg_delete -v nodejs smtools zoneinit
-pkg_add -v nodejs smtools zoneinit
-npm install smartdc -g
-npm install jsontool -g
-npm install manta -g
-# Configuring image specific packages
-echo "* Configuring image specific packages."
-# Clean up
-echo "* Cleaning up."
-rm -rf /root/*
-# Prepare image for provisioning
-sm-prepare-image -y
-EOF
+	#!/usr/bin/bash
+	#
+	# Put customizations to your image in this file.
+	PATH=/opt/local/gnu/bin:/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin
+	# Exit if any commands fail
+	set -o errexit
+	# Ensure we have updated standard packages
+	echo "* Updating standard packages."
+	pkg_delete -v nodejs smtools zoneinit
+	pkg_add -v nodejs smtools zoneinit
+	npm install smartdc -g
+	npm install jsontool -g
+	npm install manta -g
+	# Configuring image specific packages
+	echo "* Configuring image specific packages."
+	# Clean up
+	echo "* Cleaning up."
+	rm -rf /root/*
+	# Prepare image for provisioning
+	sm-prepare-image -y
+	EOF
 
 	# Make customize executable
 	chmod +x ${mi_reposdir}/${mi_repo}/customize
 
 	# Create var/zoneinit/includes
-	mkdir -p ${mi_reposdir}/${mi_repo}/copy/var/zoneinit/includes &> /dev/null || fail "* ERROR - Couldn't create directory ${mi_reposdir}/${mi_repo}/copy/var/zoneinit/includes.";
+	mkdir -p ${mi_reposdir}/${mi_repo}/copy/var/zoneinit/includes &> /dev/null \
+		|| fail "* ERROR - Couldn't create directory ${mi_reposdir}/${mi_repo}/copy/var/zoneinit/includes.";
 
 	# Create motd
 	cat > ${mi_reposdir}/${mi_repo}/motd <<-EOF
-   __        .                   .
- _|  |_      | .-. .  . .-. :--. |-
-|_    _|     ;|   ||  |(.-' |  | |
-  |__|   \`--'  \`-' \`;-| \`-' '  ' \`-'
-                   /  ; %brand% (%name% %version%)
-                   \`-'  %homepage%
+	__        .                   .
+	_|  |_      | .-. .  . .-. :--. |-
+	|_    _|     ;|   ||  |(.-' |  | |
+	|__|   \`--'  \`-' \`;-| \`-' '  ' \`-'
+					/  ; %brand% (%name% %version%)
+					\`-'  %homepage%
 
-EOF
+	EOF
 
 	# Create packages
 	cat > ${mi_reposdir}/${mi_repo}/packages <<-EOF
