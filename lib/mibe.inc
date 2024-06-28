@@ -73,9 +73,9 @@ populate_smartos() {
 		|| fail "* ERROR - Couldn't create directory ${mi_reposdir}/${mi_repo}."
 
 	cat > ${mi_reposdir}/${mi_repo}/README.md <<-EOF
-	# mi-alexxlabs-xxx
+	# ${mi_repo}
 
-	This repository is based on [Joyent mibe](https://github.com/joyent/mibe).
+	This repository is based on [mibe](https://github.com/alexxlabs/mibe).
 
 	EOF
 
@@ -88,14 +88,38 @@ populate_smartos() {
 	* etc
 	EOF
 
+	cat > ${mi_reposdir}/${mi_repo}/LICENSE <<-EOF
+	Copyright (c) 2017 SkyLime GmbH, All rights reserved.
+	Copyright (c) 2024 alexxlabs development, All rights reserved.
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in
+	all copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+	THE SOFTWARE
+
+	EOF
+
 	# Create manifest
 	cat > ${mi_reposdir}/${mi_repo}/manifest <<-EOF
 	name="${mi_image}"
-	organization="Joyent"
+	organization="alexxlabs development"
 	brand="Instance"
 	version="1.0.0"
 	description="Description for image ${mi_image}"
-	homepage="http://wiki.joyent.com/jpc2/${mi_image}+Instance"
+	homepage="https://github.com/alexxlabs/${mi_image}"
 	users="root admin"
 	EOF
 
@@ -105,20 +129,26 @@ populate_smartos() {
 	#
 	# Put customizations to your image in this file.
 	PATH=/opt/local/gnu/bin:/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin
+	
 	# Exit if any commands fail
 	set -o errexit
+	
 	# Ensure we have updated standard packages
 	echo "* Updating standard packages."
 	pkg_delete -v nodejs smtools zoneinit
 	pkg_add -v nodejs smtools zoneinit
+	
 	npm install smartdc -g
 	npm install jsontool -g
 	npm install manta -g
+	
 	# Configuring image specific packages
 	echo "* Configuring image specific packages."
+	
 	# Clean up
 	echo "* Cleaning up."
 	rm -rf /root/*
+
 	# Prepare image for provisioning
 	sm-prepare-image -y
 	EOF

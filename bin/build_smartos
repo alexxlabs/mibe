@@ -17,7 +17,7 @@ usage() {
 	build_smartos - version ${mi_version}
 	Image builder for SmartOS images
 
-	Usage: $0 [options] BUILD_BASE BUILD_ZONE BUILD_REPO
+	Usage: $0 [options] BUILD_BASE_UUID BUILD_ZONE BUILD_REPO
 
 	Options:
 
@@ -25,17 +25,15 @@ usage() {
 
 	Arguments:
 
-		BUILD_BASE	Build image to use for base of the image.  This image
-					must already exist in the ZFS hierarchy.
-					e.g. base64-13.2.1
-
-		BUILD_ZONE	Build zone to use for building out the image.  The
-					UUID of a zone that is already installed and running.
-					e.g. b23882cc-3d9e-11e3-aa2f-83b8d8746936
-
-		BUILD_REPO	Build repository to use which contains the necessary
-					build files for the image.
-					e.g. mi-percona
+		BUILD_BASE_UUID	Build image to use for base of the image. This image
+						must already exist in the ZFS hierarchy.
+						e.g. b23882cc-3d9e-11e3-aa2f-83b8d8746936
+		BUILD_ZONE_UUID	Build zone to use for building out the image.  The
+						UUID of a zone that is already installed and running.
+						e.g. b23882cc-3d9e-11e3-aa2f-83b8d8746936
+		BUILD_REPO		Build repository to use which contains the necessary
+						build files for the image.
+						e.g. mi-alexxlabs-base
 
 	EOF
 
@@ -103,5 +101,5 @@ zone_cleanup;
 printf "Image:             ${mi_bfinal_dump}\n";
 printf "Manifest (IMGAPI): ${mi_bfinal_manifest_imgapi}\n";
 printf "Manifest (DSAPI):  ${mi_bfinal_manifest_dsapi}\n\n";
-
+printf "imgadm install -m ${mi_bfinal_manifest_imgapi} -f ${mi_bfinal_dump}"
 exit 0;
