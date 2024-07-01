@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 
 readonly MODE=${1:-list}; shift
+readonly VM=${1:-vm_test.sh}; shift
 
 source ./mibe_lib.sh
 
+readonly VM_CURR="${VM_HOME}/${VM}"
+
+[[ -f ${VM_CURR} ]] && print "${VM_CURR}" || die "${VM_CURR} not found..."
+
 create() {
+
+	print "from create"
 }
 
 case ${MODE} in

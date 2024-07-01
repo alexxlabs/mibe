@@ -9,8 +9,8 @@ create() {
 
 	# https://www.guidgenerator.com/online-guid-generator.aspx
 	# seed zone always created from current minimal-64 image
-	# minimal-64-trunk@20240116 image - must exists
-	BUILD_ZONE_IMAGE_UUID="1a45657e-37c9-4b50-b070-c55d90054984"
+	#BUILD_ZONE_IMAGE_UUID="1a45657e-37c9-4b50-b070-c55d90054984" # minimal-64-trunk@20240116 image - must exists
+	BUILD_ZONE_IMAGE_UUID=$(imgadm avail name=${BASE_IMG_NAME} version=~${BASE_IMG_VERSION})
 	BUILD_ZONE_UUID="b765ae6c-4891-4793-941d-01dc24b2d845" # UUID of seed zone
 	BUILD_ZONE_MAC="12:33:40:a9:1d:69" # mac address of seed zone to obtain the same IP from DHCP
 
@@ -37,6 +37,8 @@ create() {
 		{
 			"brand": "joyent",
 			"alias": "buildz",
+			"hostname": "buildz.${DNS_DOMAIN}",
+			"dns_domain": "${DNS_DOMAIN}",
 			"image_uuid": "${BUILD_ZONE_IMAGE_UUID}",
 			"uuid": "${BUILD_ZONE_UUID}",
 			"max_physical_memory": 512,

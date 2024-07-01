@@ -145,9 +145,9 @@ populate_smartos() {
 	# Configuring image specific packages
 	echo "* Configuring image specific packages."
 	
-	# Clean up
-	echo "* Cleaning up."
-	rm -rf /root/*
+	# Clean up (!!! do not cleanup ALL /root/*, because it is presetupped in base image)
+	#echo "* Cleaning up."
+	#rm -rf /root/*
 
 	# Prepare image for provisioning
 	sm-prepare-image -y
