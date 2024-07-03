@@ -18,7 +18,7 @@ zfs set atime=off ${DS_MIBE}
 zfs set compression=lz4 ${DS_MIBE}
 
 cd "${MI_HOME}"
-[[ -d ".git)" ]] && git pull || git clone https://github.com/alexxlabs/mibe.git .
+[[ -d ".git" ]] && git pull || git clone https://github.com/alexxlabs/mibe.git .
 
 # Additional defaults will be loaded from mi_home/.mibecfg and $HOME/.mibecfg.
 # This configuration needs to be bash sourceable.
@@ -31,6 +31,9 @@ urn_creator_name="alexxlabs"
 compression="gzip"
 EOF
 
-# Import latest base/base64 image to build images from:
-#imgadm import $(imgadm avail | awk '/minimal-64/ { print $1 }' | tail -1)
+# Import base/base64 image to build images from:
+#	setup BASE_IMG_NAME and BASE_IMG_VERSION in 'mibe_lib.sh'
 imgadm import $(imgadm avail name=${BASE_IMG_NAME} version=~${BASE_IMG_VERSION}| awk '{ print $1 }' | tail -1)
+
+# or get the latest availible 'minimal-64' image:
+#imgadm import $(imgadm avail | awk '/minimal-64/ { print $1 }' | tail -1)
