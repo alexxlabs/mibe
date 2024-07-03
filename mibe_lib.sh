@@ -4,8 +4,10 @@
 : ${DS_MIBE:="tank/mibe"}
 : ${DS_MIBE_QUOTA:="300G"}
 
+# latest base image
 export BASE_IMG_NAME="minimal-64-trunk"
 export BASE_IMG_VERSION="20240116"
+
 export MI_HOME=/${DS_MIBE}
 export PATH=$PATH:${MI_HOME}/bin
 export VM_HOME=${MI_HOME}/vms

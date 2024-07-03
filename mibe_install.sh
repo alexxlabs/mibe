@@ -33,4 +33,4 @@ EOF
 
 # Import latest base/base64 image to build images from:
 #imgadm import $(imgadm avail | awk '/minimal-64/ { print $1 }' | tail -1)
-imgadm avail name=${BASE_IMG_NAME} version=~${BASE_IMG_VERSION}
+imgadm import $(imgadm avail name=${BASE_IMG_NAME} version=~${BASE_IMG_VERSION}| awk '{ print $1 }' | tail -1)
