@@ -8,10 +8,10 @@ help: ## Display this help
 repoinit: ## initialize empty repo skeleton for smartos image
 	@./mibe_repoinit.sh $(filter-out $@,$(MAKECMDGOALS))
 
-img: ## create mibe IMAGE [create mi-alexxlabs-<repo_name>|list]
+img: ## create IMAGE: create mi-alexxlabs-<repo_name>|list
 	@./mibe_img.sh $(filter-out $@,$(MAKECMDGOALS))
 
-vm: ## create mibe VM
+vm: ## create|ds_ls|delete|start|stop|ls|validate|mem|log|zlogin
 	@./mibe_vm.sh $(filter-out $@,$(MAKECMDGOALS))
 
 %:

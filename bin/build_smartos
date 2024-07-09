@@ -63,43 +63,33 @@ printf "Image builder for SmartOS images\n";
 
 # Get repository directory and variables
 get_reposdir;
-
 # Sanity check everything before starting
 build_sanitycheck;
-
 # Backup the zonepath and halt the build zone
 zone_backup_zonepath;
 zone_halt;
-
 # Configure the build zone for imaging
 zone_configure_buildzone;
-
 # Boot the build zone
 zone_boot;
-
 # Copy "copy" directory into build zone
 zone_copyin_files;
-
 # Create motd, product, and install packages in the build zone
 zone_create_motdproduct;
 zone_delete_packages;
 zone_install_packages;
-
 # Execute the customize script in the build zone
 zone_exec_customize;
-
 # Halt build zone and un-configure it
 zone_halt;
 zone_unconfigure_buildzone;
-
 # Create dump of build zone
 zone_create_dumpmanifest;
-
 # Clean up
 zone_cleanup;
 
 printf "Image:             ${mi_bfinal_dump}\n";
 printf "Manifest (IMGAPI): ${mi_bfinal_manifest_imgapi}\n";
 printf "Manifest (DSAPI):  ${mi_bfinal_manifest_dsapi}\n\n";
-printf "imgadm install -m ${mi_bfinal_manifest_imgapi} -f ${mi_bfinal_dump}"
+printf "\n\nimgadm install -m ${mi_bfinal_manifest_imgapi} -f ${mi_bfinal_dump}\n\n"
 exit 0;

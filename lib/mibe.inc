@@ -118,6 +118,7 @@ populate_smartos() {
 	organization="alexxlabs development"
 	brand="Instance"
 	version="1.0.0"
+	uuid="$(uuid) | or put fixed uuid here"
 	description="Description for image ${mi_image}"
 	homepage="https://github.com/alexxlabs/${mi_image}"
 	users="root admin"
@@ -162,13 +163,13 @@ populate_smartos() {
 
 	# Create motd
 	cat > ${mi_reposdir}/${mi_repo}/motd <<-EOF
-	__        .                   .
-	_|  |_      | .-. .  . .-. :--. |-
-	|_    _|     ;|   ||  |(.-' |  | |
-	|__|   \`--'  \`-' \`;-| \`-' '  ' \`-'
-					/  ; %brand% (%name% %version%)
-					\`-'  %homepage%
-
+			__                   __       __          
+	.---.-|  .-----.--.--.--.--|  .---.-|  |--.-----.
+	|  _  |  |  -__|_   _|_   _|  |  _  |  _  |__ --|
+	|___._|__|_____|__.__|__.__|__|___._|_____|_____|
+													
+		%brand% (%name% %version%)
+		%homepage%
 	EOF
 
 	# Create packages
@@ -176,6 +177,11 @@ populate_smartos() {
 	# List packages to add to your image one per line.
 	dtracetools
 	htop
+	EOF
+
+	cat > ${mi_reposdir}/${mi_repo}/packages_delete <<-EOF
+	# List packages to delete from base image before installing ALL from 'packages' (one per line)
+
 	EOF
 
 	echo "* Done.";
@@ -225,53 +231,38 @@ get_vars() {
 
 build_sanitycheck() {
 	printf "\n%-70s" "* Sanity checking build files and environment..";
-
 	# Check that the build zone mi_bzone exists
 	[[ $(zoneadm -z ${mi_bzone} list &> /dev/null)$? -ne 0 ]] && failtest "Build zone ${mi_bzone} doesn\'t exist.";
-
 	# Check that we have privileges to do things
 	if [[ $(zonecfg -z ${mi_bzone} 'add attr; set name=mi-test; set type=string; set value="test"; end' 2> /dev/null)$? -ne 0 ]]; then
 		failtest "Don't have proper privileges to continue.";
 	else
 		zonecfg -z ${mi_bzone} 'remove attr name=mi-test'
 	fi
-
 	# Check if build zone mi_bzone is a SmartOS zone
 	[[ $(zoneadm -z ${mi_bzone} list -p 2> /dev/null | awk -F: '{ print $6 }') = "kvm" ]] && failtest "Build zone ${mi_bzone} must be a SmartOS zone.";
-
 	# Check if build zone mi_bzone is configured and running
 	[[ $(zoneadm -z ${mi_bzone} list -p 2> /dev/null | awk -F: '{ print $3 }') != "running" ]] && failtest "Build zone ${mi_bzone} must be configured and\n  running.";
-
 	# Make mi_brepo absolute
 	mi_brepo=$(readlink -f ${mi_brepo})
-
 	# Check that build repository mi_brepo directory exists
 	[[ -d "${mi_brepo}" ]] || failtest "Build repository ${mi_brepo} doesn\'t exist.";
-
 	# load .mibecfg defaults if available
 	get_defaults;
-
 	# Check that build repository manifest mi_brepo/manifest exists
 	[[ -f "${mi_brepo}/manifest" ]] && source ${mi_brepo}/manifest || failtest "A build repository manifest ${mi_brepo}/manifest doesn't exist.\n! A build repository with proper build files must exist for an\n! image to be built.  See https://github.com:joyent/mi-example\n";	
-
 	# Check that build repository customize mi_brepo/customize exists
 	[[ -f "${mi_brepo}/customize" ]] || failtest "A build repository customize ${mi_brepo}/customize doesn\'t exist.\n! A build repository with proper build files must exist for an\n! image to be built.  See https://github.com:joyent/mi-example\n";
-
 	# Get build variables after sourcing manifest
 	get_vars;
-
 	# Check that final build image file doesn't already exist
 	[[ -f "${mi_bfinal_dump}" ]] && failtest "Build image ${mi_bfinal_dump} already exists\n! Nothing to do.";
-
 	# Check if base image mi_bimage exists
 	[[ $(zfs list -Ho name -t filesystem zones/${mi_bimage} &> /dev/null)$? -ne 0 ]] && failtest "Base image zones/${mi_bimage} doesn't exist.";
-
 	# Check if mi_bimage_snap exists
 	[[ $(zfs list -Ho name -t snapshot ${mi_bimage_snap} &> /dev/null)$? -eq 0 ]] && failtest "Base image snapshot ${mi_bimage_snap} already exists.";
-
 	# Check if mi_bzone_tplate exists
 	[[ $(zfs list -Ho name -t filesystem ${mi_bzone_tplate} &> /dev/null)$? -eq 0 ]] && failtest "Base template ${mi_bzone_tplate}.";
-
 	printf "OK.\n";
 }
 
@@ -342,7 +333,12 @@ zone_configure_buildzone() {
 	for mi_bzone_vnic in ${mi_bzone_vnics[@]}; do
 		mv /${mi_bzone_tplate}/root/etc/hostname.${mi_bzone_vnic}{,.orig} 2> /dev/null || true;
 		cp -p ${mi_bzone_oldpath}/root/etc/hostname.${mi_bzone_vnic} \
-		/${mi_bzone_tplate}/root/etc/hostname.${mi_bzone_vnic} 2> /dev/null || true;
+			/${mi_bzone_tplate}/root/etc/hostname.${mi_bzone_vnic} 2> /dev/null || true;
+
+		mv /${mi_bzone_tplate}/root/etc/dhcp.${mi_bzone_vnic}{,.orig} 2> /dev/null || true;
+		cp -p ${mi_bzone_oldpath}/root/etc/dhcp.${mi_bzone_vnic} \
+			/${mi_bzone_tplate}/root/etc/dhcp.${mi_bzone_vnic} 2> /dev/null || true;
+
 	done
 
 	printf "OK.\n";
@@ -421,46 +417,39 @@ zone_create_motdproduct() {
 }
 
 zone_delete_packages() {
-	if [[ -f "${mi_brepo_path}/delete_packages" ]]; then
+	if [[ -f "${mi_brepo_path}/packages_delete" ]]; then
 		IFS=$'\n\r';
-		mi_bzone_packagesr=($(cat ${mi_brepo_path}/delete_packages));
+		mi_bzone_packagesr=($(cat ${mi_brepo_path}/packages_delete));
 		unset IFS;
 		mi_bzone_packages=(${mi_bzone_packagesr[@]/\#*/});
-
 		if [[ ! -z "${mi_bzone_packages}" ]]; then
 			printf "%-70s" "* Delete packages list..";
-
-			echo "pkgdelete -v ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
-
+			echo "* pkg_delete -v ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
 			mi_bzone_result=$(zlogin ${mi_bzone} \
 				PATH=/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin \
 				pkg_delete -v ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
 				| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
-
 			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error deleting the packages list.\n! See ${mi_bzone_logerr}";
 		fi
 	fi
 }
 
 zone_install_packages() {
-	# First run pkgin update
+	printf "%-70s" "* Updating packages.."
 	mi_bzone_result=$(zlogin ${mi_bzone} 'PATH=/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin \
-		touch /opt/local/.dlj_license_accepted; pkgin -f -y up 2>&1' >> ${mi_bzone_logall} \
-		| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?);
-
-	[[ ! ${mi_bzone_result} ]] || failtest "Unable to update pkgin list.";
+		touch /opt/local/.dlj_license_accepted; \
+		pkgin -f -y up 2>&1' >> ${mi_bzone_logall} \
+		| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?)
+	[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "Unable to update pkgin list.\n! See ${mi_bzone_logerr}";
 
 	if [[ -f "${mi_brepo_path}/packages" ]]; then
 		IFS=$'\n\r';
 		mi_bzone_packagesr=($(cat ${mi_brepo_path}/packages));
 		unset IFS;
 		mi_bzone_packages=(${mi_bzone_packagesr[@]/\#*/});
-
 		if [[ ! -z "${mi_bzone_packages}" ]]; then
 			printf "%-70s" "* Installing packages list..";
-
-			echo "pkg_add -U -v ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
-
+			echo "* pkg_add -U -v ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
 			mi_bzone_result=$(zlogin ${mi_bzone} \
 				PATH=/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin \
 				pkg_add -U -v ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
@@ -592,7 +581,7 @@ zone_create_dumpmanifest() {
 	mi_file_time=$(ls -l --time-style '+%Y-%m-%dT%H:%M:%SZ' ${mi_bfinal_dump} | awk '{ print $6 }');
 	mi_file_hash=$(digest -a sha1 ${mi_bfinal_dump});
 	mi_file_size=$(ls -l ${mi_bfinal_dump} | awk '{ print $5 }');
-	mi_manifest_uuid=$(uuid);
+	mi_manifest_uuid=${uuid}; # instead of generating new uuid with $(uuid); get uuid from 'manifest'
 
 sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest_imgapi}
 {
@@ -678,6 +667,9 @@ zone_unconfigure_buildzone() {
 	for mi_bzone_vnic in ${mi_bzone_vnics[@]}; do
 		mv /${mi_bzone_tplate}/root/etc/hostname.${mi_bzone_vnic}{.orig,} 2>/dev/null || \
 		rm /${mi_bzone_tplate}/root/etc/hostname.${mi_bzone_vnic} 2>/dev/null || true;
+
+		mv /${mi_bzone_tplate}/root/etc/dhcp.${mi_bzone_vnic}{.orig,} 2>/dev/null || \
+		rm /${mi_bzone_tplate}/root/etc/dhcp.${mi_bzone_vnic} 2>/dev/null || true;
 	done
 
 	# Snapshot the final image mi_bzone_tplate@final
@@ -759,9 +751,9 @@ zone_configure_lx_buildzone() {
 }
 
 zone_delete_lx_packages() {
-	if [[ -f "${mi_brepo_path}/delete_packages" ]]; then
+	if [[ -f "${mi_brepo_path}/packages_delete" ]]; then
     IFS=$'\n\r';
-		mi_bzone_packagesr=($(cat ${mi_brepo_path}/delete_packages));
+		mi_bzone_packagesr=($(cat ${mi_brepo_path}/packages_delete));
 		unset IFS;
 		mi_bzone_packages=(${mi_bzone_packagesr[@]/\#*/});
 
