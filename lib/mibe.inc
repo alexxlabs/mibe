@@ -118,7 +118,7 @@ populate_smartos() {
 	organization="alexxlabs development"
 	brand="Instance"
 	version="1.0.0"
-	uuid="$(uuid) | or put fixed uuid here"
+	imageuuid="$(uuid) | put fixed uuid for this image here"
 	description="Description for image ${mi_image}"
 	homepage="https://github.com/alexxlabs/${mi_image}"
 	users="root admin"
@@ -581,7 +581,7 @@ zone_create_dumpmanifest() {
 	mi_file_time=$(ls -l --time-style '+%Y-%m-%dT%H:%M:%SZ' ${mi_bfinal_dump} | awk '{ print $6 }');
 	mi_file_hash=$(digest -a sha1 ${mi_bfinal_dump});
 	mi_file_size=$(ls -l ${mi_bfinal_dump} | awk '{ print $5 }');
-	mi_manifest_uuid=${uuid}; # instead of generating new uuid with $(uuid); get uuid from 'manifest'
+	mi_manifest_uuid=${imageuuid}; # instead of generating new uuid with $(uuid); get 'imageuuid' from 'manifest'
 
 sed '/^[[:blank:]]*$/d' <<-EOF > ${mi_bfinal_manifest_imgapi}
 {

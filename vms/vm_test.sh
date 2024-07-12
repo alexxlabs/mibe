@@ -1,10 +1,10 @@
-#IMAGE_UUID="69fe7a6a-3d34-11ef-9790-0cc47aabb682" # based on: alexxlabs-base@20240116.0
 BASED_ON_NAME="alexxlabs-base"
 BASED_ON_VERSION="20240116.0"
 IMAGE_UUID=$(imgadm list -H name=${BASED_ON_NAME} version=~${BASED_ON_VERSION}| awk '{ print $1 }' | tail -1)
+#IMAGE_UUID="69fe7a6a-3d34-11ef-9790-0cc47aabb682" # or directly specify alexxlabs-base@20240116.0 uuid
 
 UUID="19f0280c-3d2a-11ef-ae00-0cc47aabb682" # unique: https://www.guidgenerator.com/online-guid-generator.aspx
-#UUID_DISK_QUOTA="15G" # default is setupped in mibe_lib.sh, if you want to override it - uncomment and setup
+#UUID_DISK_QUOTA="15G" # default '15G' is setupped in mibe_lib.sh, if you want to override it - uncomment and setup
 
 ALIAS="test"
 PRIORITY="99"

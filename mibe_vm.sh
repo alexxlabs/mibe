@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-readonly MODE=${1:-jlist}; shift
+readonly MODE=${1:-ls}; shift
 readonly VM=${1:-test}; shift
 
 source ./mibe_lib.sh
@@ -78,7 +78,7 @@ define_vm_create_json() {
 		"filesystems": [${FILESYSTEMS}],
 		"customer_metadata": {
 			${CUSTOMER_METADATA}
-			"admin_authorized_keys":	"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_rsa_router.pem.pub || echo 'key_not_exist')",
+			"admin_authorized_keys":	"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519_router.pem.pub || echo 'key_not_exist')",
 			"root_authorized_keys":		"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519_router.pem.pub || echo 'key_not_exist')",
 			"root_ssh_rsa":				"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_rsa_router.pem || echo 'key_not_exist')",
 			"root_ssh_rsa_pub":			"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_rsa_router.pem.pub || echo 'key_not_exist')",
@@ -86,7 +86,9 @@ define_vm_create_json() {
 			"mail_smarthost":			"${MTA_HOST}",
 			"mail_auth_user":			"${MTA_MAILTO}",
 			"mail_auth_pass":			"${ALEXXLABS_PASS}",
-			"mail_adminaddr":			"${MTA_MAILTO}"
+			"mail_adminaddr":			"${MTA_MAILTO}",
+			"telegramm_bot_token":		"${telegramm_bot_token}",
+			"telegramm_chat_id":		"${telegramm_chat_id}"
 		}
 	}
 	EOL
@@ -172,6 +174,25 @@ vm_ds_ls() {
 	done
 }
 
+zrun() {
+	local param="${1:-INIT}"
+
+	# get script name to run from GZ
+	local script_name="VM_SETUP_FROM_GZ_"${param^^} # caps-lock param
+	[[ "x${!script_name}" != "x" ]] \
+		&& print "running ${script_name}" \
+		&& /bin/bash -c "${!script_name}"
+
+	# get script name to run inside zone
+	script_name="VM_SETUP_INSIDE_"${param^^} # caps-lock param
+	# get content of value ${script_name} => ${!script_name}
+	# and run it inside zone (this works in 'bash' - not in 'sh')
+	[[ "x${!script_name}" != "x" ]] \
+		&& print "running ${script_name}" \
+		&& (zlogin ${UUID} /bin/bash -c "${!script_name}") \
+		|| die "${script_name} not defined or is empty"
+}
+
 vm_delete() {
 	[[ $(zone_state) == "running" ]] && print "stopping VM ${UUID}." && vmadm stop ${UUID}
 	#[[ $(zone_state) != "stopped" ]] && die "zone ${UUID} is not in stopped state"
@@ -197,6 +218,7 @@ case ${MODE} in
 	ds_ls)		vm_ds_ls "$@"; exit ;;
 	delete)		vm_delete ; exit ;;
 	start)		[[ $(zone_state) == "stopped" ]] && vmadm start ${UUID} || print "zone is already running..."; exit ;;
+	setup)		[[ $(zone_state) == "running" ]] && zrun "$@" || print "zone is not running..."; exit ;;
 	stop)		[[ $(zone_state) == "running" ]] && vmadm stop ${UUID} || print "zone is not running..."; exit ;;
 	ls)			define_vm_create_json; echo ${vm_create_json}| jq .; exit ;;
 	validate)	define_vm_create_json; echo ${vm_create_json}| jq . | vmadm validate create; exit ;;
