@@ -18,43 +18,16 @@ if [[ -d ${LOFS_DIR} ]]; then
 	EOF
 fi
 
-: ${DS_PKGSRC:="zones/alexxlabs/pkgsrc"}
-: ${DS_PKGSRC_QUOTA:="300G"}
-#: ${DS_PKGSRC_MOUNTPOINT:="/opt/pkgsrc"} # default mountpoint will be '/${DS_PKGSRC}'
-echo -n ">>> processing ${DS_PKGSRC} ... "
-ds_exists=$(zfs list -H -o name| grep "${DS_PKGSRC}")
-[[ "x${ds_exists}" != "x" ]] && echo "exists." || (echo "not exists, create it." && zfs create ${DS_PKGSRC})
-[[ "x${DS_PKGSRC_QUOTA}" != "x" ]] && zfs set quota="${DS_PKGSRC_QUOTA}" ${DS_PKGSRC}
-zfs set xattr=off ${DS_PKGSRC}
-zfs set atime=off ${DS_PKGSRC}
-zfs set compression=lz4 ${DS_PKGSRC}
-# !!! WARNING !!! WE CHANGE MOUNTPOINT OF THIS DATASET !!! we 'inherit' it on zone deletion
-# !!! commented for now, gives error:
-# !!!		- cannot set property for 'tank/tce': 'mountpoint' cannot be set on dataset in a non-global zone
-#[[ "x${DS_PKGSRC_MOUNTPOINT}" != "x" ]] \
-#	&& echo "===> set mountpoint of ${DS_PKGSRC} dataset to: ${DS_PKGSRC_MOUNTPOINT}" \
-#	&& zfs set mountpoint="${DS_PKGSRC_MOUNTPOINT}" ${DS_PKGSRC}
+# dataset declaration ("dataset", "dataset_quota", "dataset_mountpoint", "sharesmb")
+dataset_pkgsrc=("zones/alexxlabs/pkgsrc" "300G" "/data/packages/SmartOS/trunk/x86_64/All" "no")
 
-# https://thetooth.name/blog/homelab-2022-part-2-samba-on-smartos-using-delegated-datasets/
-# !!! instead of delegate datasets and LOFS - use this mounting inside zone !!!
-# The official documentation would lead you to believe that the only step required is setting the delegate_dataset flag.
-# But as cautioned in the guide anything we put into this zone will share it's life cycle with the zone itself.
-# We won't be using this flag at all and instead I will be delegating an existing dataset in such a way that the zone
-# can be deleted at any time while retaining our content for future zones or importing straight into any other ZFS capable
-# operating system. A side note on LOFS:
-#   If you need multiple zones to access the same dataset concurrently but also cannot use NFS/Samba an alternate option
-#   is LOFS. LOFS, works kind of like 'mount --bind', abstracting the calls to perform reads and writes and some simple
-#   locking, it is however not an ideal solution. It's possible for a misbehaving zone to lock a file forever and crash,
-#   needing a full host power cycle to get things moving again. The performance isn't much better than Samba either,
-#   expect a hard cap on IOPs and no more than 100MB/s throughput. And of course it wont work with HVM guests at all.
-datasets_to_mount=(
-	${DS_PKGSRC}
-)
+# names of datasets, defined above, to process (create, optional setup 'quota', 'mountpoint', 'sharesmb')
+datasets_to_process=("dataset_pkgsrc")
 
-#	"vfstab":	"storage.alexxlabs.com:/export/data  -  /data  nfs  -  yes  rw,bg,intr"
-define CUSTOMER_METADATA <<-FF
-	"datasets_to_mount":	"${datasets_to_mount[@]}",
-FF
+
+#define CUSTOMER_METADATA <<-FF
+#	"vfstab":	"storage.alexxlabs.com:/export/data  -  /data  nfs  -  yes  rw,bg,intr",
+#FF
 
 # because pkgsrc image is not based on our alexxlabs-base (with our initial setup procedure)
 # provide some separate setup procedure for newly deployed 'pkgsrc'
@@ -91,4 +64,15 @@ define VM_SETUP_INSIDE_INIT << 'FF'
 
 	# restart sshd because we copy new 'sshd_config' inside zone
 	svcadm restart ssh
+
+	datasets_to_mount=$(mdata-get datasets_to_mount)
+	[ -z ${datasets_to_mount} ] || 
+	for dataset in "${datasets_to_mount[@]}"; do
+		# if need to change mountpoint, change it
+		ds_mountpoint_to_set=$(zfs get -H -o "value" com.alexxlabs:mountpoint ${dataset})
+		[[ "x${ds_mountpoint_to_set}" != "x-" ]] \
+			&& [[ "x${ds_mountpoint_to_set}" != "xdefault" ]] \
+				&& zfs set mountpoint=${ds_mountpoint_to_set} ${dataset}
+	done
+
 FF

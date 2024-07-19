@@ -118,9 +118,9 @@ populate_smartos() {
 	organization="alexxlabs development"
 	brand="Instance"
 	version="1.0.0"
-	imageuuid="$(uuid) | put fixed uuid for this image here"
-	description="Description for image ${mi_image}"
-	homepage="https://github.com/alexxlabs/${mi_image}"
+	imageuuid="$(uuid)"
+	description="A SmartOS 64-bit image pre-configured and optimized as ${mi_image}. Based on mi-alexxlabs-base"
+	homepage="https://github.com/alexxlabs/${mi_repo}"
 	users="root admin"
 	EOF
 

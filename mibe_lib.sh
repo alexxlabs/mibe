@@ -7,6 +7,7 @@
 ## =========== for mibe_vm.sh
 # default disk quota of ALL created zones
 : ${UUID_DISK_QUOTA:="15G"}
+#
 # support for use variables from /usbkey/config
 source /opt/custom/lib/lib_deploy.sh && load_usbkey_vars
 echo ${CONFIG_dns_resolvers:?"variable not set in /usbkey/config"}>/dev/null 2>&1
@@ -23,6 +24,8 @@ echo ${CONFIG_telegramm_bot_token:?"variable not set in /usbkey/config"}>/dev/nu
 telegramm_bot_token=${CONFIG_telegramm_bot_token}
 echo ${CONFIG_telegramm_chat_id:?"variable not set in /usbkey/config"}>/dev/null 2>&1
 telegramm_chat_id=${CONFIG_telegramm_chat_id}
+echo ${CONFIG_gz_github_token:?"variable not set in /usbkey/config"}>/dev/null 2>&1
+gz_github_token=${CONFIG_gz_github_token}
 
 ## =========== for mibe_img.sh
 # latest base image

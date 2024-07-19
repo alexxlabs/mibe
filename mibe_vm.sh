@@ -15,6 +15,56 @@ echo ${PRIORITY:?"variable not set in ${VM_CURR}"}>/dev/null 2>&1
 echo ${ALIAS:?"variable not set in ${VM_CURR}"}>/dev/null 2>&1
 echo ${MAC:?"variable not set in ${VM_CURR}"}>/dev/null 2>&1
 
+# https://thetooth.name/blog/homelab-2022-part-2-samba-on-smartos-using-delegated-datasets/
+# !!! instead of delegate datasets and LOFS - use this mounting inside zone !!!
+# The official documentation would lead you to believe that the only step required is setting the delegate_dataset flag.
+# But as cautioned in the guide anything we put into this zone will share it's life cycle with the zone itself.
+# We won't be using this flag at all and instead I will be delegating an existing dataset in such a way that the zone
+# can be deleted at any time while retaining our content for future zones or importing straight into any other ZFS capable
+# operating system. A side note on LOFS:
+#   If you need multiple zones to access the same dataset concurrently but also cannot use NFS/Samba an alternate option
+#   is LOFS. LOFS, works kind of like 'mount --bind', abstracting the calls to perform reads and writes and some simple
+#   locking, it is however not an ideal solution. It's possible for a misbehaving zone to lock a file forever and crash,
+#   needing a full host power cycle to get things moving again. The performance isn't much better than Samba either,
+#   expect a hard cap on IOPs and no more than 100MB/s throughput. And of course it wont work with HVM guests at all.
+#
+# prepare datasets and setup 'datasets_to_mount' for future use (see below)
+datasets_to_mount=()
+for arrayName in "${datasets_to_process[@]}"; do
+	# creates a nameref variable ref whose value is the variable name passed as the first argument
+	declare -n array="$arrayName"
+	ds="${array[0]}"
+	ds_quota="${array[1]:-no}"
+	ds_mountpoint="${array[2]:-default}"
+	ds_sharesmb="${array[3]:-no}"
+	echo -n ">>> processing ${ds} ... "
+	ds_exists=$(zfs list -H -o name| grep "${ds}")
+	[[ "x${ds_exists}" != "x" ]] && echo "exists." || (echo "not exists, create it." && zfs create ${ds})
+	[[ "x${ds_quota}" != "xno" ]] && echo ">>> set quota of ${ds} to ${ds_quota}" && zfs set quota="${ds_quota}" ${ds}
+	echo ">>> set xattr of ${ds} to off" && zfs set xattr=off ${ds}
+	echo ">>> set atime of ${ds} to off" && zfs set atime=off ${ds}
+	echo ">>> set compression of ${ds} to lz4" && zfs set compression=lz4 ${ds}
+	# we use 'com.alexxlabs:mountpoint' inside zone in '989-datasets-smbshare.sh' to actually setup 'mountpoint'
+	if [[ "x${ds_mountpoint}" != "xdefault" ]]; then
+		ds_mountpoint_to_set=$(zfs get -H -o "value" com.alexxlabs:mountpoint ${ds})
+		# if com.alexxlabs:mountpoint was previously setupped, do not setup again
+		if [[ "x${ds_mountpoint_to_set}" == "x-" ]]; then
+			echo ">>> set com.alexxlabs:mountpoint of ${ds} dataset to ${ds_mountpoint}"
+			echo ">>> for future setup actual mountpoint inside zone."
+			zfs set com.alexxlabs:mountpoint=${ds_mountpoint} ${ds}
+		fi
+	fi
+	# we use 'com.alexxlabs:sharesmb' inside zone in '989-datasets-smbshare.sh' to actually share
+	ds_sharesmb_to_set=$(zfs get -H -o "value" com.alexxlabs:sharesmb ${ds})
+	# if com.alexxlabs:mountpoint was previously setupped, do not setup again
+	if [[ "x${ds_sharesmb_to_set}" == "x-" ]]; then
+		echo ">>> set com.alexxlabs:sharesmb of ${ds} dataset to ${ds_sharesmb}"
+		echo ">>> for future setup share by smb inside zone."
+		zfs set com.alexxlabs:sharesmb=${ds_sharesmb} ${ds}
+	fi
+	datasets_to_mount+=("${ds}") # add 'ds' to array to pass to 'vm_create_json'
+done
+
 define_vm_create_json() {
 	# ************* README Notes *****************
 	# If you have set the indestructible_zoneroot or indestructible_delegated
@@ -78,6 +128,8 @@ define_vm_create_json() {
 		"filesystems": [${FILESYSTEMS}],
 		"customer_metadata": {
 			${CUSTOMER_METADATA}
+			"datasets_to_mount":		"${datasets_to_mount[@]}",
+			"gz_github_token":			"${gz_github_token}",
 			"admin_authorized_keys":	"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519_router.pem.pub || echo 'key_not_exist')",
 			"root_authorized_keys":		"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519_router.pem.pub || echo 'key_not_exist')",
 			"root_ssh_rsa":				"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_rsa_router.pem || echo 'key_not_exist')",
@@ -107,7 +159,7 @@ vm_create() {
 	define_vm_create_json; echo ${vm_create_json}| jq . | vmadm create
 	# setup zone space quota, if provided
 	[[ "x${UUID_DISK_QUOTA}" != "x" ]] \
-		&& print "setup disk quota of ${UUID} to ${UUID_DISK_QUOTA}" \
+		&& print ">>> setup disk quota of ${UUID} to ${UUID_DISK_QUOTA}" \
 		&& zfs set quota="${UUID_DISK_QUOTA}" "zones/${UUID}"
 
 	# !!! Now use zonecfg to hand off the dataset to the zone and restart,
@@ -118,14 +170,17 @@ vm_create() {
 	# to mount, array of needed datasets MUST be nonempty
 	[ -z ${datasets_to_mount} ] || 
 	for dataset in "${datasets_to_mount[@]}"; do
+		echo -n ">>> processing ${dataset} ... "
 		ds_exists=$(zfs list -H -o name| grep "${dataset}")
 		[[ "x${ds_exists}" == "x" ]] \
-			&& echo "${dataset} not exist" \
-			|| 	echo "inherit 'share{nfs,smb}' properties of dataset ${dataset}" \
+			&& echo "not exist" \
+			|| 	echo "exists." \
+				&& echo ">>> inherit 'sharenfs' prop of dataset ${dataset}" \
 				&& zfs inherit sharenfs ${dataset} \
+				&& echo ">>> inherit 'sharesmb' prop of dataset ${dataset}" \
 				&& zfs inherit sharesmb ${dataset} \
 				\
-				&& echo "mount ${dataset} under zone ${UUID}" \
+				&& echo ">>> mount ${dataset} under zone ${UUID}" \
 				&& zonecfg -z ${UUID} "add dataset; set name=${dataset}; end; verify; commit"
 	done
 	#zonecfg -z ${UUID} "info dataset"
@@ -167,10 +222,11 @@ vm_ds_ls() {
 	# to list, array of needed datasets MUST be nonempty
 	[ -z ${datasets_to_mount} ] || 
 	for dataset in "${datasets_to_mount[@]}"; do
+		echo -n ">>> processing ${dataset} ... "
 		ds_exists=$(zfs list -H -o name| grep "${dataset}")
 		[[ "x${ds_exists}" == "x" ]] \
-			&& echo "${dataset} not exist" \
-			|| zfs get -H zoned ${dataset}
+			&& echo "not exist" \
+			|| echo "exist" && zfs get -H zoned ${dataset}
 	done
 }
 
@@ -199,17 +255,24 @@ vm_delete() {
 	# to inherit, array of needed datasets MUST be nonempty
 	[ -z ${datasets_to_mount} ] || 
 	for dataset in "${datasets_to_mount[@]}"; do
+		echo -n ">>> processing ${dataset} ... "
 		ds_exists=$(zfs list -H -o name| grep "${dataset}")
 		[[ "x${ds_exists}" == "x" ]] \
-			&& echo "${dataset} not exist" \
-			|| echo "inherit 'zoned' and 'mountpoint' properties of dataset ${dataset}" \
-					&& zfs inherit zoned ${dataset} \
-					&& zfs inherit mountpoint ${dataset}
+			&& echo "not exist" \
+			|| echo "exist" \
+				&& echo ">>> inherit 'zoned' prop of dataset ${dataset}" \
+				&& zfs inherit zoned ${dataset} \
+				&& echo ">>> inherit 'mountpoint' prop of dataset ${dataset}" \
+				&& zfs inherit mountpoint ${dataset} \
+				&& echo ">>> inherit 'com.alexxlabs:mountpoint' prop of dataset ${dataset}" \
+				&& zfs inherit -r com.alexxlabs:mountpoint ${dataset} \
+				&& echo ">>> inherit 'com.alexxlabs:sharesmb' prop of dataset ${dataset}" \
+				&& zfs inherit -r com.alexxlabs:sharesmb ${dataset} # If the property is not defined in any parent dataset, it is removed entirely.
 	done
 	zfs mount -a
-	print "updating indestructible_delegated=false for VM ${UUID}."
+	print ">>> updating indestructible_delegated=false for VM ${UUID}."
 	vmadm update ${UUID} indestructible_delegated=false
-	print "deleting VM ${UUID}."
+	print ">>> deleting VM ${UUID}."
 	vmadm delete ${UUID}
 }
 

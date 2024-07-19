@@ -14,10 +14,14 @@ create() {
 
 	# alexxlabs-base:	(must exists) based on BASE_IMG_NAME@BASE_IMG_VERSION
 	# others:			(must exists) based on alexxlabs-base@version [BASE_IMG_ALEXXLABS_UUID]
-	BASE_IMG_ALEXXLABS_UUID="69fe7a6a-3d34-11ef-9790-0cc47aabb682"
+	#
+	BASE_IMG_ALEXXLABS_UUID="d8d6cce2-426d-11ef-9986-0cc47aabb682"
+	#
 	[[ "x${REPO}" != "xbase" ]] \
 		&& BUILD_BASE_UUID="${BASE_IMG_ALEXXLABS_UUID}" \
 		|| BUILD_BASE_UUID="${BUILD_ZONE_IMAGE_UUID}"
+
+	print "creating ${REPO} image (from mi-alexxlabs-${REPO} repo) based on ${BUILD_BASE_UUID}"
 
 	[[ -d "${CURR_DIR}/repos/mi-alexxlabs-${REPO}" ]] \
 		&& cd "${CURR_DIR}/repos" \
@@ -35,6 +39,7 @@ create() {
 		print "Creating seedz:"
 		# resolvers				: List of resolvers to be put into /etc/resolv.conf
 		# maintain_resolvers	: Resolvers in /etc/resolv.conf will be updated when updating the 'resolvers' property.
+		# "max_physical_memory": 10240,
 		vmadm create <<-EOF
 		{
 			"brand": "joyent",
@@ -43,9 +48,11 @@ create() {
 			"dns_domain": "${DNS_DOMAIN}",
 			"image_uuid": "${BUILD_ZONE_IMAGE_UUID}",
 			"uuid": "${BUILD_ZONE_UUID}",
-			"max_physical_memory": 512,
 			"maintain_resolvers": true,
 			"resolvers": ${DNS_RESOLVERS},
+			"ram": 10240,
+			"max_physical_memory": 10240,
+			"max_swap": 10240,
 			"nics": [{
 				"nic_tag": "admin",
 				"interface": "net0",

@@ -32,23 +32,16 @@ repo_update() {
 	echo "alexxlabs/" > /data/pkgsrc/.gitignore
 }
 
-sandbox() {
-	# change 'zones/alexxlabs/pkgsrc' mountpoint to /data/packages/SmartOS/trunk/x86_64/All/
-	datasets_to_mount=$(mdata-get datasets_to_mount)
-	[ -z ${datasets_to_mount} ] || 
-	for dataset in "${datasets_to_mount[@]}"; do
-		ds_exists=$(zfs list -H -o name| grep "${dataset}")
-		[[ "x${ds_exists}" == "x" ]] && die "${dataset} not exist" # this should never happen
-		[[ "x${dataset}" == "xzones/alexxlabs/pkgsrc" ]] \
-			&& zfs set mountpoint=/data/packages/SmartOS/trunk/x86_64/All ${dataset}
-	done
-	run-sandbox trunk-x86_64
+cleanup() {
+	umount /data/pkgsrc/alexxlabs
+	rm /data/pkgsrc/.gitignore
 }
 
 case ${MODE} in
 	up)			repo_update ; exit ;;
-	sandbox)	sandbox ; exit ;;
-	*)			print "uncknown mode: ${MODE}"; exit ;;
+	sandbox)	run-sandbox trunk-x86_64 ; exit ;;
+	clean)		cleanup ; exit ;;
+	*)			print "unknown mode: ${MODE}"; exit ;;
 esac
 
 # https://github.com/TritonDataCenter/pkgsrc/wiki/pkgdev:building
