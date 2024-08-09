@@ -14,9 +14,8 @@ RAM=4096 # default is 512
 #	{"type": "lofs", "source": "/${DS_PKGSRC}", "target": "${DS_PKGSRC_MOUNTPOINT}"}
 #EOF
 
-#	"vfstab":	"storage.alexxlabs.com:/export/data  -  /data  nfs  -  yes  rw,bg,intr",
-#
 define CUSTOMER_METADATA <<-FF
+	"root_known_hosts":	"pgsql.alexxlabs.com",
 	"forgejo_authorized_keys":	"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519_router.pem.pub || echo 'key_not_exist')",
 	"forgejo_pwd":	"${ALEXXLABS_PASS}",
 FF

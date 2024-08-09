@@ -130,15 +130,17 @@ define_vm_create_json() {
 			${CUSTOMER_METADATA}
 			"datasets_to_mount":		"${datasets_to_mount[@]}",
 			"gz_github_token":			"${gz_github_token}",
-			"admin_authorized_keys":	"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519_router.pem.pub || echo 'key_not_exist')",
-			"root_authorized_keys":		"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519_router.pem.pub || echo 'key_not_exist')",
-			"root_ssh_rsa":				"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_rsa_router.pem || echo 'key_not_exist')",
-			"root_ssh_rsa_pub":			"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_rsa_router.pem.pub || echo 'key_not_exist')",
-			"root_known_hosts":			"[router.alexxlabs.com]:58000 $(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519_router.pem.pub || echo 'key_not_exist')",
+
+			"admin_authorized_keys":	"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519.pem.pub	|| echo 'key_not_exist')",
+			"root_authorized_keys":		"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519.pem.pub	|| echo 'key_not_exist')",
+			"root_ssh_ed25519":			"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519.pem		|| echo 'key_not_exist')",
+			"root_ssh_ed25519_pub":		"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519.pem.pub	|| echo 'key_not_exist')",
+
 			"mail_smarthost":			"${MTA_HOST}",
 			"mail_auth_user":			"${MTA_MAILTO}",
 			"mail_auth_pass":			"${ALEXXLABS_PASS}",
 			"mail_adminaddr":			"${MTA_MAILTO}",
+
 			"telegramm_bot_token":		"${telegramm_bot_token}",
 			"telegramm_chat_id":		"${telegramm_chat_id}"
 		}

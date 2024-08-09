@@ -2,11 +2,14 @@ BASED_ON_NAME="alexxlabs-pgsql"
 BASED_ON_VERSION="20240116.1"
 IMAGE_UUID=$(imgadm list -H name=${BASED_ON_NAME} version=~${BASED_ON_VERSION}| awk '{ print $1 }' | tail -1)
 
-UUID="50989332-4197-11ef-84a2-0cc47aabb682" # unique: https://www.guidgenerator.com/online-guid-generator.aspx
-#UUID_DISK_QUOTA="15G" # default '15G' is setupped in mibe_lib.sh, if you want to override it - uncomment and setup
+UUID="e6819cf0-4678-11ef-bfd4-123340a91d97" # unique
+#
+# default '15G' is setupped in mibe_lib.sh
+# if you want to override it - uncomment and setup
+#UUID_DISK_QUOTA="15G"
 
-ALIAS="pgsql"
-PRIORITY="97"
+ALIAS="backup.pgsql"
+PRIORITY="95"
 MAC="12:33:40:a9:1d:${PRIORITY}"
 RAM=2048 # default is 512
 
@@ -18,10 +21,11 @@ RAM=2048 # default is 512
 # ( see: mi-alexxlabs-pgsql/copy/var/zoneinit/includes/31-postgresql.sh )
 #
 define CUSTOMER_METADATA <<-FF
-	"root_known_hosts":		"backup.pgsql.alexxlabs.com",
-	"psql_postgres_pwd":	"${ALEXXLABS_PASS}",
+	"root_known_hosts":				"pgsql.alexxlabs.com",
+	"psql_postgres_pwd":			"${ALEXXLABS_PASS}",
 
-	"psql_role":			"main",
+	"psql_role":					"backup",
+	"psql_role_backup_main_host":	"pgsql.alexxlabs.com",
 FF
 
 # ===== dataset declaration ("dataset", "quota", "mountpoint", "sharesmb") =====
@@ -37,13 +41,12 @@ FF
 # 	unable to initialize mapping system
 # TODO: try to share on NEXT alexxlabs-base version ( based on next 'minimal-64-trunk' ), maybe something change !!!
 #
-# TODO: zfs allow -dl root mount,create,rename,snapshot,send,snapshot,hold tank/pgsql
+# TODO: zfs allow -dl root mount,create,rename,snapshot,receive tank/pgsql_backup_server
 #
 # and if change 'mountpoints' here, then also fix pathes inside zone definition:
 # 	- /tank/mibe/repos/mi-alexxlabs-pgsql/copy/var/zoneinit/includes/31-postgresql.sh
-dataset_pgsql=("tank/pgsql" "300G" "/var/pgsql/data" "no")
-dataset_pgsql_backups=("tank/pgsql_backups" "500G" "/var/backups/postgresql" "no")
+dataset_pgsql=("tank/pgsql_backup_server" "300G" "/var/pgsql/data" "no")
 
 # names of datasets, defined above, to process on VM operations: /tank/mibe/mibe_vm.sh
 # (create, optional setup 'quota', 'mountpoint', 'sharesmb')
-datasets_to_process=("dataset_pgsql" "dataset_pgsql_backups")
+datasets_to_process=("dataset_pgsql")

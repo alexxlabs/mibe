@@ -15,14 +15,19 @@ RAM=1024 # default is 512
 #	{"type": "lofs", "source": "/${DS_PKGSRC}", "target": "${DS_PKGSRC_MOUNTPOINT}"}
 #EOF
 
-#define CUSTOMER_METADATA <<-FF
-#	"vfstab":	"storage.alexxlabs.com:/export/data  -  /data  nfs  -  yes  rw,bg,intr",
-#FF
+define CUSTOMER_METADATA <<-FF
+	"root_known_hosts":	"router.alexxlabs.com",
+FF
 
 # dataset declaration ("dataset", "quota", "mountpoint", "sharesmb")
+# - dataset		:
+# - quota		:
+# - mountpoint	:
+# - sharesmb	: 'no' or 'user:group' to chown shared directory
 dataset_tce=("tank/tce" "300G" "/tce" "no")
-dataset_http_root=("zones/alexxlabs/http_root" "300G" "default" "yes")
+dataset_http_root=("zones/alexxlabs/http_root" "300G" "default" "admin:staff")
 # tank/rpi  sharenfs  rw=@10.2.0.0/24,root=@10.2.0.0/24
 
-# names of datasets, defined above, to process (create, optional setup 'quota', 'mountpoint', 'sharesmb')
+# names of datasets, defined above, to process on VM operations: /tank/mibe/mibe_vm.sh
+# (create, optional setup 'quota', 'mountpoint', 'sharesmb')
 datasets_to_process=("dataset_tce" "dataset_http_root")
