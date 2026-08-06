@@ -146,7 +146,7 @@ populate_smartos() {
 	# Configuring image specific packages
 	echo "* Configuring image specific packages."
 	
-	# Clean up (!!! do not cleanup ALL /root/*, because it is presetupped in base image)
+	# !!! Clean up (!!! do not cleanup ALL /root/*, because it is presetupped in base image)
 	#echo "* Cleaning up."
 	#rm -rf /root/*
 
@@ -436,10 +436,12 @@ zone_delete_packages() {
 
 zone_install_packages() {
 	printf "%-70s" "* Updating packages.."
-	mi_bzone_result=$(zlogin ${mi_bzone} 'PATH=/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin \
+	mi_bzone_result=$(zlogin ${mi_bzone} \
+		'PATH=/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin \
 		touch /opt/local/.dlj_license_accepted; \
-		pkgin -f -y up 2>&1' >> ${mi_bzone_logall} \
-		| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?)
+		pkg_admin rebuild; \
+		pkgin -f -y update 2>&1' \
+			>> ${mi_bzone_logall}| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?);
 	[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "Unable to update pkgin list.\n! See ${mi_bzone_logerr}";
 
 	if [[ -f "${mi_brepo_path}/packages" ]]; then
@@ -449,12 +451,12 @@ zone_install_packages() {
 		mi_bzone_packages=(${mi_bzone_packagesr[@]/\#*/});
 		if [[ ! -z "${mi_bzone_packages}" ]]; then
 			printf "%-70s" "* Installing packages list..";
+
 			echo "* pkg_add -U -v ${mi_bzone_packages[@]}" >> ${mi_bzone_logall}
 			mi_bzone_result=$(zlogin ${mi_bzone} \
 				PATH=/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin \
-				pkg_add -U -v ${mi_bzone_packages[@]} 2>&1 >> ${mi_bzone_logall} \
-				| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
-
+				pkg_add -U -v ${mi_bzone_packages[@]} 2>&1 \
+					>> ${mi_bzone_logall}| tee -a ${mi_bzone_logall} >> ${mi_bzone_logerr} || echo $?); 
 			[[ ! ${mi_bzone_result} ]] && printf "OK.\n" || failtest "There was an error installing the packages list.\n! See ${mi_bzone_logerr}";
 		fi
 	fi

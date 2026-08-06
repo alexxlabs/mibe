@@ -152,13 +152,13 @@ usage() {
 
 	Usage: $PROGRAM <command>
 	Commands:
-	    version|ver					Print program version
-	    help					Print help (this screen)
-	    rate					get API rate limit
-	    clone <root_dir> <mask> <visibility>	clone repos into <root_dir> by mask
-		        * root_dir: <curr_dir>/repos
-		        * mask:     <mi-alexxlabs>
-		        * visibility: <all>|public|private
+		version|ver					Print program version
+		help					Print help (this screen)
+		rate					get API rate limit
+		clone <root_dir> <mask> <visibility>	clone repos into <root_dir> by mask
+				* root_dir: <curr_dir>/repos
+				* mask:     <mi-alexxlabs>
+				* visibility: <all>|public|private
 	    reponew <reponame>				remotely create new repo on github
 	EOF
 }
@@ -171,7 +171,7 @@ if [ -n "$arg" ]; then
 		rate) gh_get_rate_limit; exit ;;
 		clone) gh_clone_repos "$@"; exit ;;
 		reponew) gh_repo_new "$@"; exit ;;
-		*) print "uncknown arg: $arg" ;;
+		*) print "uncknown arg: $arg"; usage ;;
 	esac
 fi
 

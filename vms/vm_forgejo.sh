@@ -16,7 +16,7 @@ RAM=4096 # default is 512
 
 define CUSTOMER_METADATA <<-FF
 	"root_known_hosts":	"pgsql.alexxlabs.com",
-	"forgejo_authorized_keys":	"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519_router.pem.pub || echo 'key_not_exist')",
+	"forgejo_authorized_keys":	"$(/usr/bin/tr '\n' '$' < /usbkey/ssh/config.d/id_ed25519.pem.pub || echo 'key_not_exist')",
 	"forgejo_pwd":	"${ALEXXLABS_PASS}",
 FF
 
@@ -28,7 +28,12 @@ FF
 #
 # and if change 'mountpoints' here, then also fix pathes inside zone definition:
 # 	- /tank/mibe/repos/mi-alexxlabs-forgejo/copy/opt/alexxlabs/var/mdata-setup/includes/41-forgejo.sh [app.ini setup]
-dataset_forgejo=("zones/alexxlabs/forgejo" "300G" "/opt/forgejo" "no")
+dataset_forgejo=("zones/alexxlabs/forgejo" "300G" "/var/db/forgejo" "no")
+# dataset declaration ("dataset", "quota", "mountpoint", "sharesmb")
+# - dataset		:
+# - quota		:
+# - mountpoint	:
+# - sharesmb	: 'no' or 'user:group' to chown shared directory
 
 # names of datasets, defined above, to process on VM operations: /tank/mibe/mibe_vm.sh
 # (create, optional setup 'quota', 'mountpoint', 'sharesmb')

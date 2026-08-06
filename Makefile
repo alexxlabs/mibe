@@ -8,10 +8,10 @@ help: ## Display this help
 repo: ## mi-alexxlabs-<repo_name> : initialize empty repo skeleton for smartos image
 	@./mibe_repo.sh $(filter-out $@,$(MAKECMDGOALS))
 
-img: ## create mi-alexxlabs-<repo_name>|list
+img: ## create mi-alexxlabs-<repo_name> | <list>
 	@./mibe_img.sh $(filter-out $@,$(MAKECMDGOALS))
 
-vm: ## create|ds_ls|delete|start|setup|stop|ls|validate|mem|log|zlogin
+vm: ## create | ds_ls | delete | start | customize | stop | ls | validate | mem | log | zlogin
 	@./mibe_vm.sh $(filter-out $@,$(MAKECMDGOALS))
 
 %:

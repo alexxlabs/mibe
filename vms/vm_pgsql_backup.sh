@@ -46,6 +46,11 @@ FF
 # and if change 'mountpoints' here, then also fix pathes inside zone definition:
 # 	- /tank/mibe/repos/mi-alexxlabs-pgsql/copy/var/zoneinit/includes/31-postgresql.sh
 dataset_pgsql=("tank/pgsql_backup_server" "300G" "/var/pgsql/data" "no")
+# dataset declaration ("dataset", "quota", "mountpoint", "sharesmb")
+# - dataset		:
+# - quota		:
+# - mountpoint	:
+# - sharesmb	: 'no' or 'user:group' to chown shared directory
 
 # names of datasets, defined above, to process on VM operations: /tank/mibe/mibe_vm.sh
 # (create, optional setup 'quota', 'mountpoint', 'sharesmb')

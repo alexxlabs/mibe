@@ -59,7 +59,10 @@ create() {
 				"ips": ["dhcp", "addrconf"],
 				"primary": true,
 				"mac": "${BUILD_ZONE_MAC}"
-			}]
+			}],
+			"customer_metadata": {
+				"gpg_pub_key":	"$(/usr/bin/tr '\n' '$' < ${VM_HOME}/vm_pkgsrc/lofs/gpg_keys/${GPG_KEY_ID}.asc || echo 'gpg_key_not_exist')"
+			}
 		}
 		EOF
 	fi
